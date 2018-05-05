@@ -15,6 +15,7 @@ import com.teamwizardry.wizardry.common.entity.angel.zachriel.nemez.NemezEventHa
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectLeap;
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectTimeSlow;
 import com.teamwizardry.wizardry.common.network.*;
+import com.teamwizardry.wizardry.common.potion.brewing.InfusionBrewingRecipes;
 import com.teamwizardry.wizardry.common.world.GenHandler;
 import com.teamwizardry.wizardry.common.world.underworld.WorldProviderUnderWorld;
 import com.teamwizardry.wizardry.crafting.burnable.FireRecipes;
@@ -25,6 +26,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.world.DimensionType;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.brewing.BrewingRecipeRegistry;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -60,6 +62,7 @@ public class CommonProxy {
 		ModEntities.init();
 		ModCapabilities.preInit();
 		ModEnchantments.init();
+		ModPotionTypes.init();
 
 		NetworkRegistry.INSTANCE.registerGuiHandler(Wizardry.instance, new GuiHandler());
 
@@ -72,6 +75,7 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.register(new InfusionEventHandler());
 		MinecraftForge.EVENT_BUS.register(new AchievementEvents());
 		MinecraftForge.EVENT_BUS.register(new ModCapabilities());
+		MinecraftForge.EVENT_BUS.register(new ModPotionTypes());
 		MinecraftForge.EVENT_BUS.register(new ModuleEffectTimeSlow());
 		MinecraftForge.EVENT_BUS.register(new ModuleEffectLeap());
 		MinecraftForge.EVENT_BUS.register(ModBiomes.BIOME_UNDERWORLD);
@@ -89,6 +93,8 @@ public class CommonProxy {
 		PacketHandler.register(PacketSyncCooldown.class, Side.CLIENT);
 		PacketHandler.register(PacketVanishPotion.class, Side.CLIENT);
 		PacketHandler.register(PacketDevilDustFizzle.class, Side.CLIENT);
+		
+		BrewingRecipeRegistry.addRecipe(new InfusionBrewingRecipes());
 	}
 
 	public void init(FMLInitializationEvent event) {

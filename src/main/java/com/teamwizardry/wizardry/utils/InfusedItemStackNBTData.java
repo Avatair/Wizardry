@@ -19,6 +19,13 @@ public class InfusedItemStackNBTData {
 		this.prefix = prefix;
 	}
 	
+	public InfusedItemStackNBTData(InfusedItemStackNBTData other, String prefix) {
+		this.rand = other.rand;
+		this.spellList = other.spellList;
+		this.pearlType = other.pearlType;
+		this.prefix = prefix;
+	}
+	
 	public InfusedItemStackNBTData initByStack(ItemStack stack) {
 		spellList = ItemNBTHelper.getList(stack, prefix + Constants.NBT.SPELL, net.minecraftforge.common.util.Constants.NBT.TAG_COMPOUND);
 		pearlType = ItemNBTHelper.getString(stack, prefix + Constants.NBT.PEARL_TYPE, "");

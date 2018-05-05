@@ -19,13 +19,6 @@ public class InfusionHelper {
 				public EnumPearlType getType(ItemStack stack) {
 					return ( item == Items.ENCHANTED_BOOK ) ? EnumPearlType.INFUSED : EnumPearlType.MUNDANE;
 				}
-				
-/*				@Override
-				public IWizardryCapability getOverridenWizardCapability(ItemStack stack, IWizardryCapability defaultCapability) {
-					// stack.s CAP_ON_VANILLA
-					NBTTagCompound compound = ItemNBTHelper.getCompound(stack, Constants.NBT.CAP_ON_VANILLA);
-					 
-				} */
 			};
 		}
 		
