@@ -81,6 +81,7 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.register(ModBiomes.BIOME_UNDERWORLD);
 		MinecraftForge.EVENT_BUS.register(this);
 		MinecraftForge.EVENT_BUS.register(SpellTicker.class);
+		MinecraftForge.EVENT_BUS.register(ModPotions.BOTTLED_MAGIC);
 
 		PacketHandler.register(PacketSendSpellToBook.class, Side.SERVER);
 		PacketHandler.register(PacketSyncCape.class, Side.SERVER);

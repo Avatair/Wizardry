@@ -117,10 +117,10 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 				SpellData spell = new SpellData(world);
 				spell.processEntity(player, true);
 				SpellUtils.runSpell(stack, spell);
-
-				player.swingArm(EnumHand.MAIN_HAND);
+				
 				setCooldown(world, player, hand, stack, spell);
 			}
+			
 			return new ActionResult<>(EnumActionResult.PASS, stack);
 		} else {
 			if (world.isRemote && (Minecraft.getMinecraft().currentScreen != null)) {

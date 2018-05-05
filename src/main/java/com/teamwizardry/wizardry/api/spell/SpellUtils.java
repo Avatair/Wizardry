@@ -5,6 +5,7 @@ import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.item.BaublesSupport;
 import com.teamwizardry.wizardry.api.spell.module.Module;
 import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
+import com.teamwizardry.wizardry.api.spell.module.ModuleShape;
 import com.teamwizardry.wizardry.api.util.ColorUtils;
 import com.teamwizardry.wizardry.init.ModItems;
 import net.minecraft.entity.Entity;
@@ -55,7 +56,7 @@ public class SpellUtils {
 	}
 
 	public static void runSpell(@Nonnull ItemStack spellHolder, @Nonnull SpellData data) {
-		runSpell(spellHolder, data);
+		runSpell(spellHolder, null, data);
 	}
 	
 	public static void runSpell(@Nonnull ItemStack spellHolder, String prefix, @Nonnull SpellData data) {
@@ -84,6 +85,19 @@ public class SpellUtils {
 		for (SpellRing spellRing : spellList) {
 			spellRing.runSpellRing(data);
 		}
+	}
+	
+	public static List<SpellRing> filterByShape(List<SpellRing> list, Class<? extends ModuleShape> shapeClass) {
+		ArrayList<SpellRing> newList = new ArrayList<SpellRing>(list.size());
+		if( list == null || list.isEmpty() )
+			return newList;
+		
+		for( SpellRing spell : list ) {
+			if( shapeClass.isInstance(spell.getModule()) )
+				newList.add(spell);
+		}
+		
+		return newList;
 	}
 
 	/**
