@@ -8,7 +8,7 @@ import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpBe
 import com.teamwizardry.librarianlib.features.tesr.TileRenderHandler;
 import com.teamwizardry.wizardry.api.block.CachedStructure;
 import com.teamwizardry.wizardry.api.block.IStructure;
-import com.teamwizardry.wizardry.api.capability.CapManager;
+import com.teamwizardry.wizardry.api.capability.mana.CapManager;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.client.core.StructureErrorRenderer;
 import com.teamwizardry.wizardry.client.fx.LibParticles;
@@ -20,9 +20,7 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms.TransformType;
 import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -132,16 +130,7 @@ public class TileCraftingPlateRenderer extends TileRenderHandler<TileCraftingPla
 
 			mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
-			for (BlockRenderLayer layer : cachedStructure.blocks.keySet()) {
-				buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-				buffer.addVertexData(cachedStructure.vboCaches.get(layer));
-
-				for (int i = 0; i < buffer.getVertexCount(); i++) {
-					int idx = buffer.getColorIndex(i + 1);
-					buffer.putColorRGBA(idx, 255, 255, 255, 200);
-				}
-				tes.draw();
-			}
+			TileManaBatteryRenderer.renderLayers(tes, buffer, cachedStructure);
 
 			GlStateManager.disablePolygonOffset();
 			GlStateManager.color(1F, 1F, 1F, 1F);
@@ -151,7 +140,7 @@ public class TileCraftingPlateRenderer extends TileRenderHandler<TileCraftingPla
 
 		} else if (!tile.revealStructure && !errors.isEmpty()) {
 			for (BlockPos error : errors)
-				StructureErrorRenderer.INSTANCE.addError(error);
+				StructureErrorRenderer.addError(error);
 		}
 
 		// render each item at its current position

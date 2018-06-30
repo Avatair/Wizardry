@@ -79,7 +79,7 @@ public class SpellUtils {
 		if( spellList == null || spellList.isEmpty() ) return;
 
 		Entity caster = data.getData(SpellData.DefaultKeys.CASTER);
-		if (caster != null && caster instanceof EntityLivingBase && BaublesSupport.getItem((EntityLivingBase) caster, ModItems.CREATIVE_HALO, ModItems.FAKE_HALO, ModItems.REAL_HALO).isEmpty())
+		if (caster instanceof EntityLivingBase && BaublesSupport.getItem((EntityLivingBase) caster, ModItems.CREATIVE_HALO, ModItems.FAKE_HALO, ModItems.REAL_HALO).isEmpty())
 			return;
 
 		for (SpellRing spellRing : spellList) {

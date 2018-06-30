@@ -5,8 +5,8 @@ import com.teamwizardry.librarianlib.features.base.block.tile.module.ModuleInven
 import com.teamwizardry.librarianlib.features.saving.Module;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.wizardry.api.block.TileManaInteractor;
-import com.teamwizardry.wizardry.api.capability.IWizardryCapability;
-import com.teamwizardry.wizardry.api.capability.WizardryCapabilityProvider;
+import com.teamwizardry.wizardry.api.capability.mana.IWizardryCapability;
+import com.teamwizardry.wizardry.api.capability.mana.WizardryCapabilityProvider;
 import com.teamwizardry.wizardry.api.item.ICooldown;
 import com.teamwizardry.wizardry.api.item.IManaCell;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -15,7 +15,6 @@ import com.teamwizardry.wizardry.common.item.ItemNacrePearl;
 import com.teamwizardry.wizardry.common.item.ItemOrb;
 import com.teamwizardry.wizardry.init.ModBlocks;
 import com.teamwizardry.wizardry.init.ModItems;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -83,14 +82,12 @@ public class TilePearlHolder extends TileManaInteractor implements ICooldown {
 		else if (containsNacrePearl()) {
 			if (world.isRemote) return;
 
-			updateCooldown(getItemStack());
-
 			IWizardryCapability pearlCap = WizardryCapabilityProvider.getCap(getItemStack());
 			if (pearlCap == null || pearlCap.getMana() > pearlCap.getMaxMana() || isPartOfStructure || structurePos != null)
 				return;
 
 			if (world.isBlockPowered(getPos())) return;
-			if (isCoolingDown(getItemStack())) return;
+			if (isCoolingDown(world, getItemStack())) return;
 			if (pearlCap.getMana() == 0) return;
 
 			BlockPos closestMagnet = null;

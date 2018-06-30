@@ -57,11 +57,10 @@ public class ModuleShapeTouch extends ModuleShape {
 				caster instanceof EntityLivingBase ? ((EntityLivingBase) caster).getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() : 5)
 				.setSkipEntity(caster)
 				.setReturnLastUncollidableBlock(true)
-				.setIgnoreBlocksWithoutBoundingBoxes(false)
+				.setIgnoreBlocksWithoutBoundingBoxes(true)
 				.trace();
 
 		spell.processTrace(result);
-
 		return true;
 	}
 
@@ -78,10 +77,10 @@ public class ModuleShapeTouch extends ModuleShape {
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
 		ParticleSpawner.spawn(glitter, spell.world, new InterpCircle(targetEntity.getPositionVector().addVector(0, targetEntity.height / 2.0, 0), new Vec3d(0, 1, 0), 1, 10), 50, RandUtil.nextInt(10, 15), (aFloat, particleBuilder) -> {
 			if (RandUtil.nextBoolean()) {
-				glitter.setColor(getPrimaryColor());
+				glitter.setColor(spellRing.getPrimaryColor());
 				glitter.setMotion(new Vec3d(0, RandUtil.nextDouble(0.01, 0.1), 0));
 			} else {
-				glitter.setColor(getSecondaryColor());
+				glitter.setColor(spellRing.getSecondaryColor());
 				glitter.setMotion(new Vec3d(0, RandUtil.nextDouble(-0.1, -0.01), 0));
 			}
 			glitter.setLifetime(RandUtil.nextInt(20, 30));

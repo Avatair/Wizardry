@@ -1,9 +1,10 @@
 package com.teamwizardry.wizardry.api.spell;
 
 import com.teamwizardry.librarianlib.features.saving.Savable;
-import com.teamwizardry.wizardry.api.capability.DefaultWizardryCapability;
-import com.teamwizardry.wizardry.api.capability.IWizardryCapability;
-import com.teamwizardry.wizardry.api.capability.WizardryCapabilityProvider;
+import com.teamwizardry.wizardry.api.capability.mana.DefaultWizardryCapability;
+import com.teamwizardry.wizardry.api.capability.mana.IWizardryCapability;
+import com.teamwizardry.wizardry.api.capability.mana.WizardryCapabilityProvider;
+import com.teamwizardry.wizardry.common.core.nemez.NemezTracker;
 import kotlin.Pair;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.*;
@@ -53,8 +54,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	}
 
 	public <T> void removeData(@Nonnull Pair<String, Class<T>> key) {
-		if (this.data.containsKey(key))
-			this.data.remove(key);
+		this.data.remove(key);
 	}
 
 	@Nullable
@@ -163,11 +163,37 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		return target;
 	}
 
+
+	@Nullable
+	public Vec3d getTargetBlockFirst() {
+		BlockPos pos = getData(DefaultKeys.BLOCK_HIT);
+		if (pos == null) {
+			Vec3d target = getData(DefaultKeys.TARGET_HIT);
+			if (target == null) {
+
+				Entity victim = getData(DefaultKeys.ENTITY_HIT);
+				if (victim == null) {
+					return null;
+				} else return victim.getPositionVector().addVector(0, victim.height / 2.0, 0);
+			} else return target;
+		} else return new Vec3d(pos).addVector(0.5, 0.5, 0.5);
+	}
+
+	@Nullable
+	public BlockPos getTargetPosBlockFirst() {
+		return getData(DefaultKeys.BLOCK_HIT);
+	}
+
 	@Nullable
 	public BlockPos getTargetPos() {
 		Vec3d target = getTarget();
 		if (target == null) return null;
 		return new BlockPos(target);
+	}
+
+	@Nullable
+	public EnumFacing getFaceHit() {
+		return getData(DefaultKeys.FACE_HIT);
 	}
 
 	@Nullable
@@ -253,15 +279,10 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		return spell;
 	}
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public NBTTagCompound serializeNBT() {
-		NBTTagCompound compound = new NBTTagCompound();
-		for (Pair pair : data.keySet()) {
-			NBTBase nbtClass = dataProcessor.get(pair).serialize(data.get(pair));
-			compound.setTag(pair.getFirst() + "", nbtClass);
-		}
-		return compound;
+	public static SpellData deserializeData(World world, NBTTagCompound compound) {
+		SpellData data = new SpellData(world);
+		data.deserializeNBT(compound);
+		return data;
 	}
 
 	@Override
@@ -277,10 +298,17 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		}
 	}
 
-	public static SpellData deserializeData(World world, NBTTagCompound compound) {
-		SpellData data = new SpellData(world);
-		data.deserializeNBT(compound);
-		return data;
+	@Override
+	@SuppressWarnings("unchecked")
+	public NBTTagCompound serializeNBT() {
+		NBTTagCompound compound = new NBTTagCompound();
+		for (Pair pair : data.keySet()) {
+			NBTBase nbtClass = dataProcessor.get(pair).serialize(data.get(pair));
+			compound.setTag(pair.getFirst() + "", nbtClass);
+		}
+
+		compound.setInteger("world", world.provider.getDimension());
+		return compound;
 	}
 
 	@Override
@@ -292,7 +320,6 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	}
 
 	public static class DefaultKeys {
-
 		public static final Pair<String, Class<Integer>> MAX_TIME = constructPair("max_time", Integer.class, new ProcessData.Process<NBTTagInt, Integer>() {
 			@Nonnull
 			@Override
@@ -302,7 +329,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Integer deserialize(@Nonnull World world, @Nonnull NBTTagInt object) {
+			public Integer deserialize(World world, @Nonnull NBTTagInt object) {
 				return object.getInt();
 			}
 		});
@@ -317,7 +344,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Entity deserialize(@Nonnull World world, @Nonnull NBTTagInt object) {
+			public Entity deserialize(World world, @Nonnull NBTTagInt object) {
 				return world.getEntityByID(object.getInt());
 			}
 		});
@@ -330,7 +357,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Float deserialize(@Nonnull World world, @Nonnull NBTTagFloat object) {
+			public Float deserialize(World world, @Nonnull NBTTagFloat object) {
 				return object.getFloat();
 			}
 		});
@@ -343,7 +370,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Float deserialize(@Nonnull World world, @Nonnull NBTTagFloat object) {
+			public Float deserialize(World world, @Nonnull NBTTagFloat object) {
 				return object.getFloat();
 			}
 		});
@@ -360,7 +387,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Vec3d deserialize(@Nonnull World world, @Nonnull NBTTagCompound object) {
+			public Vec3d deserialize(World world, @Nonnull NBTTagCompound object) {
 				double x = object.getDouble("x");
 				double y = object.getDouble("y");
 				double z = object.getDouble("z");
@@ -380,7 +407,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Vec3d deserialize(@Nonnull World world, @Nonnull NBTTagCompound object) {
+			public Vec3d deserialize(World world, @Nonnull NBTTagCompound object) {
 				double x = object.getDouble("x");
 				double y = object.getDouble("y");
 				double z = object.getDouble("z");
@@ -397,7 +424,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Entity deserialize(@Nonnull World world, @Nonnull NBTTagInt object) {
+			public Entity deserialize(World world, @Nonnull NBTTagInt object) {
 				return world.getEntityByID(object.getInt());
 			}
 		});
@@ -411,7 +438,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public BlockPos deserialize(@Nonnull World world, @Nonnull NBTTagLong object) {
+			public BlockPos deserialize(World world, @Nonnull NBTTagLong object) {
 				return BlockPos.fromLong(object.getLong());
 			}
 		});
@@ -426,7 +453,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public EnumFacing deserialize(@Nonnull World world, @Nonnull NBTTagString object) {
+			public EnumFacing deserialize(World world, @Nonnull NBTTagString object) {
 				return EnumFacing.valueOf(object.getString());
 			}
 		});
@@ -441,7 +468,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public IWizardryCapability deserialize(@Nonnull World world, @Nonnull NBTTagCompound object) {
+			public IWizardryCapability deserialize(World world, @Nonnull NBTTagCompound object) {
 				DefaultWizardryCapability cap = new DefaultWizardryCapability();
 				cap.deserializeNBT(object);
 				return cap;
@@ -462,7 +489,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 
 			@Override
-			public Vec3d deserialize(@Nonnull World world, @Nonnull NBTTagCompound object) {
+			public Vec3d deserialize(World world, @Nonnull NBTTagCompound object) {
 				if (!object.hasKey("x") || !object.hasKey("y") || !object.hasKey("z")) return Vec3d.ZERO;
 				double x = object.getDouble("x");
 				double y = object.getDouble("y");
@@ -483,8 +510,28 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 
 			@Nonnull
 			@Override
-			public Long deserialize(@Nonnull World world, @Nonnull NBTTagLong object) {
+			public Long deserialize(World world, @Nonnull NBTTagLong object) {
 				return object.getLong();
+			}
+		});
+
+		//TODO: not how you serialize nemez apparently
+		@Nonnull
+		public static final Pair<String, Class<NemezTracker>> NEMEZ = constructPair("nemez", NemezTracker.class, new ProcessData.Process<NBTTagList, NemezTracker>() {
+
+			@Nonnull
+			@Override
+			public NBTTagList serialize(@Nullable NemezTracker object) {
+				if (object != null)
+					return object.serializeNBT();
+				return new NBTTagList();
+			}
+
+			@Override
+			public NemezTracker deserialize(World world, @Nonnull NBTTagList object) {
+				NemezTracker tracker = new NemezTracker();
+				tracker.deserializeNBT(object);
+				return tracker;
 			}
 		});
 	}
