@@ -1,13 +1,13 @@
-package com.teamwizardry.wizardry.common.entity.angel.zachriel.nemez;
+package com.teamwizardry.wizardry.common.core.nemez;
 
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import com.teamwizardry.wizardry.common.entity.angel.zachriel.EntityZachriel;
-import com.teamwizardry.wizardry.common.network.PacketZachrielTimeReversal;
+import com.teamwizardry.wizardry.Wizardry;
+import com.teamwizardry.wizardry.common.network.PacketNemezReversal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -22,32 +22,29 @@ import java.util.Objects;
 /**
  * Handles time reversal ticking on both client and server
  */
+@Mod.EventBusSubscriber(modid = Wizardry.MODID)
 public final class NemezEventHandler {
 
 	private static HashSet<Reversal> reversals = new HashSet<>();
 
-	public static void register() {
-		MinecraftForge.EVENT_BUS.register(NemezEventHandler.class);
-	}
-
 	@SideOnly(Side.CLIENT)
-	public static NemezArenaTracker getCurrent() {
+	public static NemezTracker getCurrent() {
 		if (reversals.isEmpty()) {
-			Reversal reversal = new Reversal(Minecraft.getMinecraft().world, new NemezArenaTracker());
+			Reversal reversal = new Reversal(Minecraft.getMinecraft().world, new NemezTracker());
 			reversals.add(reversal);
 		}
 		return reversals.iterator().next().nemez;
 	}
 
-	public static void reverseTime(World world, NemezArenaTracker tracker, BlockPos position) {
+	public static void reverseTime(World world, NemezTracker tracker, BlockPos locus) {
 		Reversal reversal = new Reversal(world, tracker);
-		reversal.pos = position;
+		reversal.pos = locus;
 		reversals.add(reversal);
 	}
 
-	public static void reverseTime(EntityZachriel zachriel) {
-		reverseTime(zachriel.world, zachriel.nemezDrive, zachriel.arena.getCenter());
-		zachriel.nemezDrive.erase();
+	public static void rewind(World world, NemezTracker tracker, BlockPos locus) {
+		reverseTime(world, tracker, locus);
+		tracker.erase();
 	}
 
 
@@ -58,8 +55,8 @@ public final class NemezEventHandler {
 				if (reversal.world.get() == event.world) {
 					if (reversal.nemez.hasNext()) {
 						reversal.nemez.applySnapshot(event.world);
-						if (reversal.pos != null && reversal.world.get().getTotalWorldTime() % PacketZachrielTimeReversal.SYNC_AMOUNT == 0)
-							PacketHandler.NETWORK.sendToAllAround(new PacketZachrielTimeReversal(reversal.nemez),
+						if (reversal.pos != null && reversal.world.get().getTotalWorldTime() % PacketNemezReversal.SYNC_AMOUNT == 0)
+							PacketHandler.NETWORK.sendToAllAround(new PacketNemezReversal(reversal.nemez),
 									new NetworkRegistry.TargetPoint(reversal.world.get().provider.getDimension(),
 											reversal.pos.getX() + 0.5, reversal.pos.getY() + 0.5, reversal.pos.getZ() + 0.5, 96));
 					} else {
@@ -89,12 +86,12 @@ public final class NemezEventHandler {
 	private static class Reversal {
 
 		private final WeakReference<World> world;
-		private final NemezArenaTracker nemez;
+		private final NemezTracker nemez;
 
 		@Nullable
 		private BlockPos pos = null;
 
-		public Reversal(World world, NemezArenaTracker tracker) {
+		public Reversal(World world, NemezTracker tracker) {
 			this.world = new WeakReference<>(world);
 			this.nemez = tracker.snapshot();
 			this.nemez.collapse();

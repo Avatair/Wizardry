@@ -4,13 +4,11 @@ import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.arena.ArenaManager;
-import com.teamwizardry.wizardry.api.item.BaublesSupport;
+import com.teamwizardry.wizardry.api.capability.world.WizardryWorldCapability;
 import com.teamwizardry.wizardry.api.spell.module.ModuleRegistry;
 import com.teamwizardry.wizardry.client.gui.GuiHandler;
 import com.teamwizardry.wizardry.common.advancement.AchievementEvents;
 import com.teamwizardry.wizardry.common.core.EventHandler;
-import com.teamwizardry.wizardry.common.core.SpellTicker;
-import com.teamwizardry.wizardry.common.entity.angel.zachriel.nemez.NemezEventHandler;
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectLeap;
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectTimeSlow;
 import com.teamwizardry.wizardry.common.network.*;
@@ -48,9 +46,6 @@ public class CommonProxy {
 		if (!directory.exists()) if (!directory.mkdirs())
 			Wizardry.logger.fatal("    > SOMETHING WENT WRONG! Could not create config folder!!");
 
-		MinecraftForge.EVENT_BUS.register(BaublesSupport.class);
-		NemezEventHandler.register();
-
 		new ModTab();
 		ModBlocks.init();
 		ModItems.init();
@@ -73,7 +68,8 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.register(new ModuleEffectLeap());
 		MinecraftForge.EVENT_BUS.register(ModBiomes.BIOME_UNDERWORLD);
 		MinecraftForge.EVENT_BUS.register(this);
-		MinecraftForge.EVENT_BUS.register(SpellTicker.class);
+
+		WizardryWorldCapability.init();
 
 		PacketHandler.register(PacketSendSpellToBook.class, Side.SERVER);
 		PacketHandler.register(PacketSyncCape.class, Side.SERVER);
@@ -119,11 +115,7 @@ public class CommonProxy {
 				FireRecipes.INSTANCE.copyAllRecipes(recipeDirectory);
 			FireRecipes.INSTANCE.loadRecipes(recipeDirectory);
 		}
-	}
-
-	public void postInit(FMLPostInitializationEvent event) {
-		ModStructures.INSTANCE.getClass();
-
+		
 		File moduleDirectory = new File(directory, "modules");
 		if (!moduleDirectory.exists())
 			if (!moduleDirectory.mkdirs()) {
@@ -138,6 +130,12 @@ public class CommonProxy {
 		else
 			ModuleRegistry.INSTANCE.copyMissingModules(directory);
 		ModuleRegistry.INSTANCE.processModules();
+	}
+
+	public void postInit(FMLPostInitializationEvent event) {
+		ModStructures.INSTANCE.getClass();
+
+		ModuleRegistry.INSTANCE.loadModuleOverrides();
 	}
 
 	@SubscribeEvent
