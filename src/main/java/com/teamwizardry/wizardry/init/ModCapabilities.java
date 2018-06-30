@@ -1,15 +1,15 @@
 package com.teamwizardry.wizardry.init;
 
 import com.teamwizardry.wizardry.Wizardry;
-import com.teamwizardry.wizardry.api.capability.CustomWizardryCapability;
+import com.teamwizardry.wizardry.api.capability.mana.CustomWizardryCapability;
 import com.teamwizardry.wizardry.api.capability.mana.DefaultWizardryCapability;
 import com.teamwizardry.wizardry.api.capability.mana.IWizardryCapability;
 import com.teamwizardry.wizardry.api.capability.mana.WizardryCapabilityProvider;
 import com.teamwizardry.wizardry.api.capability.mana.WizardryCapabilityStorage;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.CapabilityManager;

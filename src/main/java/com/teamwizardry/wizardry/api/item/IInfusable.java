@@ -1,7 +1,5 @@
 package com.teamwizardry.wizardry.api.item;
 
-import com.teamwizardry.wizardry.api.capability.IWizardryCapability;
-
 import net.minecraft.item.ItemStack;
 
 /**

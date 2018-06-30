@@ -60,11 +60,12 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 
 		if (requiresBowAction(stack)) return false;
 
-		List<SpellRing> spellList = SpellUtils.getSpellChains(stack);		
-		if( !SpellCasting.touchInteract(stack, spellList, playerIn, target, hand) );
+		List<SpellRing> spellList = SpellUtils.getSpellChains(stack);
+		SpellData data = SpellCasting.touchInteract(stack, spellList, playerIn, target, hand); 
+		if( data == null )
 			return false;
 		
-		setCooldown(playerIn.world, playerIn, hand, stack, spell);
+		setCooldown(playerIn.world, playerIn, hand, stack, data);
 		return true;
 	}
 
