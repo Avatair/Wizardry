@@ -5,7 +5,7 @@ import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.wizardry.api.LightningGenerator;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RandUtilSeed;
-import com.teamwizardry.wizardry.client.core.LightningRenderer;
+import com.teamwizardry.wizardry.client.core.renderer.LightningRenderer;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -17,23 +17,25 @@ import javax.annotation.Nonnull;
 public class PacketRenderLightningBolt extends PacketBase {
 
 	@Save
-	private Vec3d point1;
-	@Save
-	private Vec3d point2;
-	@Save
 	private long seed;
+	@Save
+	private Vec3d from;
+	@Save
+	private Vec3d to;
+	@Save
+	private double offshootRange;
+	
+	public PacketRenderLightningBolt()
+	{}
 
-	public PacketRenderLightningBolt() {
-	}
-
-	public PacketRenderLightningBolt(Vec3d point1, Vec3d point2, long seed) {
-		this.point1 = point1;
-		this.point2 = point2;
+	public PacketRenderLightningBolt(long seed, Vec3d from, Vec3d to, double offshootRange) {
+		this.from = from;
+		this.to = to;
 		this.seed = seed;
 	}
 
 	@Override
 	public void handle(@Nonnull MessageContext messageContext) {
-		LightningRenderer.addBolt(new LightningGenerator(point1, point2, new RandUtilSeed(seed)).generate(), RandUtil.nextInt(30, 40));
+		LightningRenderer.addBolt(LightningGenerator.generate(new RandUtilSeed(seed), from, to, offshootRange), RandUtil.nextInt(10, 15));
 	}
 }

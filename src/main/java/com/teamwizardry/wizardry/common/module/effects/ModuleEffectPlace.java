@@ -6,6 +6,7 @@ import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.ModuleEffect;
 import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
+import com.teamwizardry.wizardry.api.spell.module.ModuleRegistry;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.util.BlockUtils;
 import com.teamwizardry.wizardry.api.util.PosUtils;
@@ -14,6 +15,7 @@ import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseA
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
@@ -27,12 +29,14 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.BLOCK_HIT;
 import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.FACE_HIT;
 
 /**
@@ -56,7 +60,7 @@ public class ModuleEffectPlace extends ModuleEffect implements IBlockSelectable 
 	@Override
 	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
-		BlockPos targetPos = spell.getTargetPos();
+		BlockPos targetPos = spell.getData(BLOCK_HIT);
 		Entity caster = spell.getCaster();
 		EnumFacing facing = spell.getData(FACE_HIT);
 
@@ -167,12 +171,72 @@ public class ModuleEffectPlace extends ModuleEffect implements IBlockSelectable 
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		Vec3d position = spell.getTarget();
 
 		if (position == null) return;
 
 		LibParticles.EXPLODE(world, position, getPrimaryColor(), getSecondaryColor(), 0.2, 0.3, 20, 40, 10, true);
+	}
+
+	@NotNull
+	@Override
+	public SpellData renderVisualization(@Nonnull SpellData data, @Nonnull SpellRing ring, @Nonnull SpellData previousData) {
+		if (ring.getParentRing() != null
+				&& ring.getParentRing().getModule() != null
+				&& ring.getParentRing().getModule() == ModuleRegistry.INSTANCE.getModule("event_collide_entity"))
+			return previousData;
+
+		BlockPos targetPos = data.getData(SpellData.DefaultKeys.BLOCK_HIT);
+		Entity targetEntity = data.getVictim();
+		EnumFacing facing = data.getFaceHit();
+
+		if (facing == null) return previousData;
+
+		double range = ring.getAttributeValue(AttributeRegistry.AREA, data);
+		double strength = ring.getAttributeValue(AttributeRegistry.POTENCY, data);
+
+		if (targetEntity instanceof EntityLivingBase)
+			for (ItemStack stack : targetEntity.getArmorInventoryList())
+				stack.damageItem((int) strength, (EntityLivingBase) targetEntity);
+		if (targetPos != null) {
+
+			IBlockState state = getCachableBlockstate(data.world, targetPos, previousData);
+			if (BlockUtils.isAnyAir(state)) return previousData;
+
+			Set<EnumFacing> facings = new HashSet<>();
+			for (EnumFacing facing1 : EnumFacing.VALUES) {
+				if (facing1 == facing || facing1 == facing.getOpposite()) continue;
+				facings.add(facing1);
+			}
+
+			HashSet<BlockPos> branch = new HashSet<>();
+			HashSet<BlockPos> blocks = new HashSet<>();
+			branch.add(targetPos);
+			blocks.add(targetPos);
+			getBlocks(data.world, state.getBlock(), facings, (int) range, branch, blocks);
+
+			if (blocks.isEmpty()) return previousData;
+
+			for (BlockPos pos : blocks) {
+
+				BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
+				for (EnumFacing facing1 : EnumFacing.VALUES) {
+
+					mutable.move(facing1);
+
+					IBlockState adjStat = getCachableBlockstate(data.world, mutable, previousData);
+
+					if (adjStat.getBlock() != state.getBlock() || !blocks.contains(mutable)) {
+
+						drawFaceOutline(mutable, facing1.getOpposite());
+					}
+					mutable.move(facing1.getOpposite());
+				}
+			}
+		}
+
+		return previousData;
 	}
 }

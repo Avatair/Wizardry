@@ -1,6 +1,19 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.PITCH;
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.SEED;
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.YAW;
+import static com.teamwizardry.wizardry.common.module.shapes.ModuleShapeBeam.BEAM_CAST;
+import static com.teamwizardry.wizardry.common.module.shapes.ModuleShapeBeam.BEAM_OFFSET;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
+import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.LightningGenerator;
 import com.teamwizardry.wizardry.api.spell.IOverrideCooldown;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -21,7 +34,10 @@ import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseP
 import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import com.teamwizardry.wizardry.common.network.PacketRenderLightningBolt;
 import com.teamwizardry.wizardry.init.ModSounds;
+
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -31,12 +47,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
 
 /**
  * Created by Demoniaque.
@@ -101,6 +111,7 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 	private OverrideConsumer<SpellData, SpellRing, SpellRing> getBeamOverride() {
 		return (data, spellRing, childRing) -> {
+			spellRing.getInformationTag().setBoolean(BEAM_CAST, false);
 			World world = data.world;
 			Entity caster = data.getCaster();
 			float yaw = data.getData(YAW, 0F);
@@ -109,31 +120,52 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 			if (origin == null) return;
 
-			double range = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
-			double potency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2.0;
-			double duration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
-
-			if (!spellRing.taxCaster(data)) return;
-
-			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, range).setSkipBlocks(true).setSkipEntities(true).trace();
-
-			long seed = RandUtil.nextLong(100, 100000);
-
-			data.addData(SEED, seed);
-
-			LightningGenerator generator = new LightningGenerator(origin, traceResult.hitVec, new RandUtilSeed(seed));
-
-			ArrayList<Vec3d> points = generator.generate();
-
-			data.world.playSound(null, new BlockPos(traceResult.hitVec), ModSounds.LIGHTNING, SoundCategory.NEUTRAL, 0.5f, RandUtil.nextFloat(1, 1.5f));
-			for (Vec3d point : points) {
-				List<Entity> entityList = world.getEntitiesWithinAABBExcludingEntity(caster, new AxisAlignedBB(new BlockPos(point)).contract(0.2, 0.2, 0.2));
-				if (!entityList.isEmpty()) {
-					for (Entity entity : entityList) {
-						LightningTracker.INSTANCE.addEntity(origin, entity, caster, potency, duration);
-					}
+			double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
+			double lightningPotency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2.0;
+			double lightningDuration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
+			double beamRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
+			double beamPotency = spellRing.getAttributeValue(AttributeRegistry.POTENCY, data);
+			
+			NBTTagCompound info = spellRing.getInformationTag();
+			double beamOffset = info.getDouble(BEAM_OFFSET) + beamPotency;
+			
+			if (beamOffset >= ConfigValues.beamTimer)
+			{
+				beamOffset %= ConfigValues.beamTimer;
+				if (!spellRing.taxCaster(data))
+				{
+					info.setDouble(BEAM_OFFSET, beamOffset % ConfigValues.beamTimer);
+					return;
 				}
+				
+				RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, beamRange).setSkipBlocks(true).setSkipEntities(true).trace();
+
+				long seed = RandUtil.nextLong(100, 100000);
+
+				data.addData(SEED, seed);
+
+				ArrayList<Vec3d> points = new ArrayList<>();
+				LightningGenerator.generate(new RandUtilSeed(seed), origin, traceResult.hitVec, lightningRange).forEach(point -> points.add(point));
+
+				data.world.playSound(null, new BlockPos(traceResult.hitVec), ModSounds.LIGHTNING, SoundCategory.NEUTRAL, 0.5f, RandUtil.nextFloat(1, 1.5f));
+				
+				HashSet<BlockPos> positions = new HashSet<>();
+				for (Vec3d point : points)
+					positions.add(new BlockPos(point));
+
+				HashSet<EntityLivingBase> entities = new HashSet<>();
+				for (BlockPos position : positions)
+					entities.addAll(world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(position).contract(0.2, 0.2, 0.2)));
+				entities.remove(caster);
+
+				for (Entity entity : entities)
+					LightningTracker.INSTANCE.addEntity(origin, entity, caster, lightningPotency, lightningDuration);
+
+				info.setBoolean(BEAM_CAST, true);
 			}
+
+			sendRenderPacket(data, spellRing);
+			info.setDouble(BEAM_OFFSET, beamOffset);
 		};
 	}
 
@@ -153,21 +185,21 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 			if (origin == null) return;
 
-			double range = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
-			double potency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2.0;
+			double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data) / 4;
+			double potency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2;
 			double duration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
+			double beamRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
 
 			if (!spellRing.taxCaster(data)) return;
 
-			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, range).setSkipBlocks(true).setSkipEntities(true).trace();
+			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, beamRange).setSkipBlocks(true).setSkipEntities(true).trace();
 
 			long seed = RandUtil.nextLong(100, 100000);
 
 			data.addData(SEED, seed);
 
-			LightningGenerator generator = new LightningGenerator(origin, traceResult.hitVec, new RandUtilSeed(seed));
-
-			ArrayList<Vec3d> points = generator.generate();
+			ArrayList<Vec3d> points = new ArrayList<>();
+			LightningGenerator.generate(new RandUtilSeed(seed), origin, traceResult.hitVec, lightningRange).forEach(point -> points.add(point));
 
 			data.world.playSound(null, new BlockPos(traceResult.hitVec), ModSounds.LIGHTNING, SoundCategory.NEUTRAL, 0.5f, RandUtil.nextFloat(1, 1.5f));
 			for (Vec3d point : points) {
@@ -183,19 +215,24 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 	@SideOnly(Side.CLIENT)
 	private OverrideConsumer<SpellData, SpellRing, SpellRing> getBeamRenderOverride() {
-		return (data, ring, childRing) -> {
-			World world = data.world;
-			float yaw = data.getData(YAW, 0F);
-			float pitch = data.getData(PITCH, 0F);
-			long seed = data.getData(SEED, 0L);
-			double range = ring.getAttributeValue(AttributeRegistry.RANGE, data);
-			Vec3d origin = data.getOriginHand();
-			if (origin == null) return;
+		return (data, spellRing, childRing) -> {
+			if (spellRing.getInformationTag().getBoolean(BEAM_CAST))
+			{
+				World world = data.world;
+				float yaw = data.getData(YAW, 0F);
+				float pitch = data.getData(PITCH, 0F);
+				long seed = data.getData(SEED, 0L);
+				double beamRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
+				double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
+				Vec3d origin = data.getOriginHand();
+			
+				if (origin == null) return;
 
-			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, range).setSkipBlocks(true).setSkipEntities(true).trace();
+				RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, beamRange).setSkipBlocks(true).setSkipEntities(true).trace();
 
-			PacketHandler.NETWORK.sendToAllAround(new PacketRenderLightningBolt(origin, traceResult.hitVec, seed),
-					new NetworkRegistry.TargetPoint(world.provider.getDimension(), origin.x, origin.y, origin.z, 256));
+				PacketHandler.NETWORK.sendToAllAround(new PacketRenderLightningBolt(seed, origin, traceResult.hitVec, lightningRange),
+						new NetworkRegistry.TargetPoint(world.provider.getDimension(), origin.x, origin.y, origin.z, 256));
+			}
 		};
 	}
 
@@ -207,7 +244,7 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		// NO-OP, should always be overriding a shape
 	}
 

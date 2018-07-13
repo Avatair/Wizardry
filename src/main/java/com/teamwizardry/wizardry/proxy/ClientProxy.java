@@ -4,7 +4,7 @@ import com.teamwizardry.librarianlib.features.methodhandles.MethodHandleHelper;
 import com.teamwizardry.librarianlib.features.utilities.client.CustomBlockMapSprites;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
-import com.teamwizardry.wizardry.client.core.*;
+import com.teamwizardry.wizardry.client.core.CapeHandler;
 import com.teamwizardry.wizardry.client.render.BloodRenderLayer;
 import com.teamwizardry.wizardry.client.render.item.RenderHaloEntity;
 import com.teamwizardry.wizardry.client.render.item.RenderHaloPlayer;
@@ -48,7 +48,6 @@ public class ClientProxy extends CommonProxy {
 	public void preInit(FMLPreInitializationEvent event) {
 		super.preInit(event);
 
-		MinecraftForge.EVENT_BUS.register(new HudEventHandler());
 		if (ConfigValues.versionCheckerEnabled)
 			MinecraftForge.EVENT_BUS.register(VersionChecker.INSTANCE);
 

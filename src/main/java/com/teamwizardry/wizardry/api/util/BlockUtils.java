@@ -1,6 +1,8 @@
 package com.teamwizardry.wizardry.api.util;
 
 import com.mojang.authlib.GameProfile;
+import com.teamwizardry.wizardry.init.ModBlocks;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
@@ -32,6 +34,19 @@ public final class BlockUtils {
 	private final static GameProfile placer = new GameProfile(uuid, "Wizardry Block Placer");
 
 	private BlockUtils() {
+	}
+
+	public static boolean isAnyAir(IBlockState state) {
+		return state.getBlock() == Blocks.AIR || state.getBlock() == ModBlocks.FAKE_AIR;
+	}
+
+	public static boolean isAnyAir(World world, BlockPos pos) {
+		IBlockState state = world.getBlockState(pos);
+		return state.getBlock() == Blocks.AIR || state.getBlock() == ModBlocks.FAKE_AIR;
+	}
+
+	public static boolean isAnyAir(Block block) {
+		return block == Blocks.AIR || block == ModBlocks.FAKE_AIR;
 	}
 
 	/**

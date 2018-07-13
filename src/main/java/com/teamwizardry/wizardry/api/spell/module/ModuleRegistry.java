@@ -1,26 +1,5 @@
 package com.teamwizardry.wizardry.api.spell.module;
 
-import java.awt.Color;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map.Entry;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.apache.commons.io.FileUtils;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -36,12 +15,21 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry.Attribute;
 import com.teamwizardry.wizardry.api.spell.attribute.Operation;
 import com.teamwizardry.wizardry.api.util.DefaultHashMap;
-
 import kotlin.Pair;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import org.apache.commons.io.FileUtils;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.awt.*;
+import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Created by Demoniaque.
@@ -53,8 +41,6 @@ public class ModuleRegistry {
 	public ArrayList<Module> modules = new ArrayList<>();
 	public HashMap<Pair<ModuleShape, ModuleEffect>, OverrideConsumer<SpellData, SpellRing, SpellRing>> runOverrides = new HashMap<>();
 	public HashMap<Pair<ModuleShape, ModuleEffect>, OverrideConsumer<SpellData, SpellRing, SpellRing>> renderOverrides = new HashMap<>();
-
-	private File directory;
 
 	private Deque<Module> left = new ArrayDeque<>();
 
@@ -98,7 +84,7 @@ public class ModuleRegistry {
 		});
 	}
 
-	public void processModules() {
+	public void loadModules(File directory) {
 		Wizardry.logger.info(" _______________________________________________________________________\\\\");
 		Wizardry.logger.info(" | Starting module registration");
 
@@ -330,7 +316,7 @@ public class ModuleRegistry {
 				if (shape instanceof ModuleShape)
 				{
 					renderOverrides.put(new Pair<>((ModuleShape) shape, (ModuleEffect) effect), override);
-					Wizardry.logger.info(" | Registered " + shape.getReadableName() + " -> " + effect.getReadableName() + " render override.");
+					Wizardry.logger.info(" | Registered " + shape.getReadableName() + " -> " + effect.getReadableName() + " renderSpell override.");
 				}
 			});
 		}
@@ -343,7 +329,7 @@ public class ModuleRegistry {
 
 			InputStream stream = LibrarianLib.PROXY.getResource(Wizardry.MODID, "modules/" + module.getID() + ".json");
 			if (stream == null) {
-				Wizardry.logger.fatal("    > SOMETHING WENT WRONG! Could not read module " + module.getID() + " from mod jar! Report this to the devs on Github!");
+				Wizardry.logger.error("    > SOMETHING WENT WRONG! Could not read module " + module.getID() + " from mod jar! Report this to the devs on Github!");
 				continue;
 			}
 
@@ -363,7 +349,7 @@ public class ModuleRegistry {
 			InputStream stream = LibrarianLib.PROXY.getResource(Wizardry.MODID, "modules/" + module.getID() + ".json");
 			if (stream == null)
 			{
-				Wizardry.logger.fatal("    > SOMETHING WENT WRONG! Could not read module " + module.getID() + " from mod jar! Report this to the devs on Github!");
+				Wizardry.logger.error("    > SOMETHING WENT WRONG! Could not read module " + module.getID() + " from mod jar! Report this to the devs on Github!");
 				continue;
 			}
 			
@@ -377,9 +363,5 @@ public class ModuleRegistry {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	public void setDirectory(File directory) {
-		this.directory = directory;
 	}
 }

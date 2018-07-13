@@ -7,18 +7,24 @@ import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
 import com.teamwizardry.wizardry.api.spell.module.ModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.util.RandUtil;
+import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.common.entity.projectile.EntitySpellProjectile;
 import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseSpeed;
 import com.teamwizardry.wizardry.init.ModSounds;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
 
 /**
  * Created by Demoniaque.
@@ -67,9 +73,40 @@ public class ModuleShapeProjectile extends ModuleShape {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		if (spellRing.isRunBeingOverriden()) {
 			runRenderOverrides(spell, spellRing);
 		}
+	}
+
+	@NotNull
+	@Override
+	public SpellData renderVisualization(@Nonnull SpellData data, @Nonnull SpellRing ring, @Nonnull SpellData previousData) {
+		Vec3d look = data.getData(LOOK);
+
+		Entity caster = data.getCaster();
+		Vec3d origin = data.getOrigin();
+
+		if (look == null) return previousData;
+		if (caster == null) return previousData;
+		if (origin == null) return previousData;
+
+		double dist = ring.getAttributeValue(AttributeRegistry.RANGE, data);
+
+		RayTraceResult result = new RayTrace(
+				data.world, look, caster.getPositionVector().addVector(0, caster.getEyeHeight(), 0), dist)
+				.setSkipEntity(caster)
+				.setReturnLastUncollidableBlock(true)
+				.setIgnoreBlocksWithoutBoundingBoxes(true)
+				.trace();
+
+		data.processTrace(result);
+
+		BlockPos pos = data.getTargetPos();
+		if (pos == null) return previousData;
+
+		previousData.processTrace(result);
+
+		return previousData;
 	}
 }

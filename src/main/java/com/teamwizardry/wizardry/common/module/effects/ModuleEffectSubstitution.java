@@ -1,5 +1,6 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
+import com.teamwizardry.librarianlib.features.helpers.ItemNBTHelper;
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpHelix;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
@@ -14,6 +15,7 @@ import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.ModuleEffect;
 import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
+import com.teamwizardry.wizardry.api.spell.module.ModuleRegistry;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.util.BlockUtils;
 import com.teamwizardry.wizardry.api.util.PosUtils;
@@ -29,6 +31,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -38,9 +41,12 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Created by Demoniaque.
@@ -91,9 +97,16 @@ public class ModuleEffectSubstitution extends ModuleEffect implements IBlockSele
 			return true;
 
 		} else if (targetBlock != null && caster instanceof EntityPlayer) {
+			ItemStack hand = ((EntityPlayer) caster).getHeldItemMainhand();
+			if (hand.isEmpty()) return false;
+
 			spell.world.playSound(null, targetBlock, ModSounds.TELEPORT, SoundCategory.NEUTRAL, 1, RandUtil.nextFloat());
-			if (caster.getEntityData().hasKey("selected")) {
-				IBlockState state = NBTUtil.readBlockState(caster.getEntityData().getCompoundTag("selected"));
+			if (ItemNBTHelper.verifyExistence(hand, "selected")) {
+
+				NBTTagCompound compound = ItemNBTHelper.getCompound(hand, "selected");
+				if (compound == null) return false;
+
+				IBlockState state = NBTUtil.readBlockState(compound);
 				IBlockState touchedBlock = spell.world.getBlockState(targetBlock);
 
 				if (touchedBlock.getBlock() == state.getBlock()) return false;
@@ -121,6 +134,7 @@ public class ModuleEffectSubstitution extends ModuleEffect implements IBlockSele
 				if (blocks.isEmpty()) return true;
 
 				for (@SuppressWarnings("unused") BlockPos ignored : blocks) {
+					if (stackBlock.isEmpty()) return true;
 					if (!spellRing.taxCaster(spell)) return false;
 					BlockPos nearest = null;
 					for (BlockPos pos : blocks) {
@@ -188,7 +202,7 @@ public class ModuleEffectSubstitution extends ModuleEffect implements IBlockSele
 	@Override
 	@SuppressWarnings("unused")
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		Entity caster = spell.getCaster();
 		BlockPos targetBlock = spell.getTargetPos();
@@ -239,5 +253,89 @@ public class ModuleEffectSubstitution extends ModuleEffect implements IBlockSele
 				));
 			});
 		}
+	}
+
+	@NotNull
+	@Override
+	public SpellData renderVisualization(@Nonnull SpellData data, @Nonnull SpellRing ring, @Nonnull SpellData previousData) {
+		if (ring.getParentRing() != null
+				&& ring.getParentRing().getModule() != null
+				&& ring.getParentRing().getModule() == ModuleRegistry.INSTANCE.getModule("event_collide_entity"))
+			return previousData;
+
+		Entity caster = data.getCaster();
+		BlockPos targetBlock = data.getTargetPos();
+
+		if (!(caster instanceof EntityLivingBase)) return previousData;
+		ItemStack hand = ((EntityLivingBase) caster).getHeldItemMainhand();
+
+		if (hand.isEmpty()) return previousData;
+
+		if (targetBlock != null && caster instanceof EntityPlayer) {
+			if (ItemNBTHelper.verifyExistence(hand, "selected")) {
+				NBTTagCompound compound = ItemNBTHelper.getCompound(hand, "selected");
+				if (compound == null) return previousData;
+
+				IBlockState state = NBTUtil.readBlockState(compound);
+				IBlockState targetState = getCachableBlockstate(data.world, targetBlock, previousData);
+				if (targetState.getBlock() == state.getBlock()) return previousData;
+
+				double area = ring.getAttributeValue(AttributeRegistry.AREA, data);
+
+				ItemStack stackBlock = null;
+				for (ItemStack stack : ((EntityPlayer) caster).inventory.mainInventory) {
+					if (stack.isEmpty()) continue;
+					if (!(stack.getItem() instanceof ItemBlock)) continue;
+					Block block = ((ItemBlock) stack.getItem()).getBlock();
+					if (block != state.getBlock()) continue;
+					stackBlock = stack;
+					break;
+				}
+
+				if (stackBlock == null) return previousData;
+				stackBlock = stackBlock.copy();
+
+				HashSet<BlockPos> blocks = new HashSet<>();
+				HashSet<BlockPos> branch = new HashSet<>();
+				branch.add(targetBlock);
+				blocks.add(targetBlock);
+				getBlocks(data.world, targetState.getBlock(), (int) area, branch, blocks);
+
+				if (blocks.isEmpty()) return previousData;
+
+				HashMap<BlockPos, IBlockState> blockStateCache = new HashMap<>();
+				for (BlockPos pos : blocks) {
+					blockStateCache.put(pos, data.world.getBlockState(pos));
+				}
+
+				HashMap<BlockPos, IBlockState> tmpCache = new HashMap<>(blockStateCache);
+
+
+				for (Map.Entry<BlockPos, IBlockState> entry : tmpCache.entrySet()) {
+
+					if (BlockUtils.isAnyAir(entry.getValue())) continue;
+
+					BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(entry.getKey());
+					for (EnumFacing facing : EnumFacing.VALUES) {
+
+						mutable.move(facing);
+
+						IBlockState adjState;
+						if (!blockStateCache.containsKey(mutable)) {
+							adjState = data.world.getBlockState(mutable);
+							blockStateCache.put(mutable.toImmutable(), adjState);
+						} else adjState = blockStateCache.get(mutable);
+
+						if (adjState.getBlock() != targetState.getBlock() || !blocks.contains(mutable)) {
+
+							drawFaceOutline(mutable, facing.getOpposite());
+						}
+						mutable.move(facing.getOpposite());
+					}
+				}
+			}
+		}
+
+		return previousData;
 	}
 }

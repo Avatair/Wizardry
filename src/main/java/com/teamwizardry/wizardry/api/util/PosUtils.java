@@ -1,7 +1,6 @@
 package com.teamwizardry.wizardry.api.util;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.server.SPacketEntityVelocity;
@@ -15,6 +14,8 @@ import net.minecraft.world.World;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+
+import static net.minecraft.util.EnumFacing.*;
 
 /**
  * Created by Demoniaque on 8/27/2016.
@@ -32,20 +33,21 @@ public final class PosUtils {
 		symmetricFacingValues.add(EnumFacing.NORTH);
 	}
 
-	@Nullable
-	public static BlockPos checkNeighbor(World world, BlockPos origin, Block... desiredBlocksToFind) {
-		IBlockState originState = world.getBlockState(origin);
-		for (Block desiredBlockToFind : desiredBlocksToFind) {
-			if (originState.getBlock() == desiredBlockToFind) return origin;
+
+	public static EnumFacing[] getPerpendicularFacings(EnumFacing facing) {
+		switch (facing) {
+			case DOWN:
+			case UP:
+				return EnumFacing.HORIZONTALS;
+			case NORTH:
+			case SOUTH:
+				return new EnumFacing[]{UP, DOWN, WEST, EAST};
+			case WEST:
+			case EAST:
+				return new EnumFacing[]{UP, DOWN, NORTH, SOUTH};
 		}
-		for (EnumFacing facing : EnumFacing.values()) {
-			BlockPos pos = origin.offset(facing);
-			IBlockState state = world.getBlockState(pos);
-			for (Block desiredBlockToFind : desiredBlocksToFind) {
-				if (state.getBlock() == desiredBlockToFind) return pos;
-			}
-		}
-		return null;
+
+		return new EnumFacing[]{};
 	}
 
 	@Nullable

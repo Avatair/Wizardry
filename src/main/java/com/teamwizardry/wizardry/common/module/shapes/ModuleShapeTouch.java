@@ -13,14 +13,18 @@ import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
@@ -64,9 +68,41 @@ public class ModuleShapeTouch extends ModuleShape {
 		return true;
 	}
 
+	@NotNull
+	@Override
+	public SpellData renderVisualization(@Nonnull SpellData data, @Nonnull SpellRing ring, @Nonnull SpellData previousData) {
+		Vec3d look = data.getData(LOOK);
+
+		Entity caster = data.getCaster();
+		Vec3d origin = data.getOrigin();
+
+		if (look == null) return previousData;
+		if (caster == null) return previousData;
+		if (origin == null) return previousData;
+
+		RayTraceResult result = new RayTrace(data.world, look, caster.getPositionVector().addVector(0, caster.getEyeHeight(), 0),
+				caster instanceof EntityLivingBase ? ((EntityLivingBase) caster).getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() : 5)
+				.setSkipEntity(caster)
+				.setReturnLastUncollidableBlock(true)
+				.setIgnoreBlocksWithoutBoundingBoxes(true)
+				.trace();
+
+		data.processTrace(result);
+
+		BlockPos pos = data.getTargetPos();
+		if (pos == null) return previousData;
+
+		EnumFacing facing = result.sideHit;
+		IBlockState state = getCachableBlockstate(data.world, result.getBlockPos(), previousData);
+
+		previousData.processTrace(result);
+
+		return previousData;
+	}
+
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		if (runRenderOverrides(spell, spellRing)) return;
 
 		Entity targetEntity = spell.getVictim();

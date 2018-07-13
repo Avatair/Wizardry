@@ -68,7 +68,7 @@ public class ModuleShapeCone extends ModuleShape {
 
 		double range = spellRing.getAttributeValue(AttributeRegistry.RANGE, spell);
 		int potency = (int) (spellRing.getAttributeValue(AttributeRegistry.POTENCY, spell));
-		
+
 		Vec3d origin = spell.getOriginHand();
 
 		if (origin == null) return false;
@@ -104,7 +104,7 @@ public class ModuleShapeCone extends ModuleShape {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		if (runRenderOverrides(spell, spellRing)) return;
 
 		Vec3d target = spell.getTarget();
