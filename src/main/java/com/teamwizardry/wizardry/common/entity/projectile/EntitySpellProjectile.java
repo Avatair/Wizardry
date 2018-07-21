@@ -48,7 +48,8 @@ public class EntitySpellProjectile extends EntityMod {
 	public static final DataParameter<Float> SPEED = EntityDataManager.createKey(EntitySpellProjectile.class, DataSerializers.FLOAT);
 	public static final DataParameter<Float> GRAVITY = EntityDataManager.createKey(EntitySpellProjectile.class, DataSerializers.FLOAT);
 	public static final DataParameter<Float> DIST = EntityDataManager.createKey(EntitySpellProjectile.class, DataSerializers.FLOAT);
-
+	public static final DataParameter<Boolean> RENDER = EntityDataManager.createKey(EntitySpellProjectile.class, DataSerializers.BOOLEAN);
+	
 	public EntitySpellProjectile(World world) {
 		super(world);
 		setSize(0.3F, 0.3F);
@@ -58,7 +59,7 @@ public class EntitySpellProjectile extends EntityMod {
 			setRenderDistanceWeight(30);
 	}
 
-	public EntitySpellProjectile(World world, SpellRing spellRing, SpellData spellData, float dist, float speed, float gravity) {
+	public EntitySpellProjectile(World world, SpellRing spellRing, SpellData spellData, float dist, float speed, float gravity, boolean render) {
 		super(world);
 		setSize(0.3F, 0.3F);
 		isImmuneToFire = true;
@@ -68,6 +69,7 @@ public class EntitySpellProjectile extends EntityMod {
 		setSpeed(speed);
 		setDistance(dist);
 		setGravity(gravity);
+		setRender(render);
 
 		if (world.isRemote)
 			setRenderDistanceWeight(30);
@@ -86,58 +88,71 @@ public class EntitySpellProjectile extends EntityMod {
 		this.getDataManager().register(SPEED, 0f);
 		this.getDataManager().register(DIST, 0f);
 		this.getDataManager().register(GRAVITY, 0f);
+		this.getDataManager().register(RENDER, true);
 	}
 
-	private SpellData getSpellData() {
+	protected SpellData getSpellData() {
 		NBTTagCompound compound = getDataManager().get(SPELL_DATA);
 		return SpellData.deserializeData(world, compound);
 	}
 
-	private void setSpellData(SpellData data) {
+	protected void setSpellData(SpellData data) {
 		getDataManager().set(SPELL_DATA, data.serializeNBT());
 		getDataManager().setDirty(SPELL_DATA);
 	}
 
-	private SpellRing getSpellRing() {
+	protected SpellRing getSpellRing() {
 		NBTTagCompound compound = getDataManager().get(SPELL_RING);
 		return SpellRing.deserializeRing(compound);
 	}
 
-	private void setSpellRing(SpellRing ring) {
+	protected void setSpellRing(SpellRing ring) {
 		getDataManager().set(SPELL_RING, ring.serializeNBT());
 		getDataManager().setDirty(SPELL_RING);
 	}
 
-	private float getSpeed() {
+	protected float getSpeed() {
 		return getDataManager().get(SPEED);
 	}
 
-	private void setSpeed(float speed) {
+	protected void setSpeed(float speed) {
 		getDataManager().set(SPEED, speed);
 		getDataManager().setDirty(SPEED);
 	}
 
-	private float getGravity() {
+	protected float getGravity() {
 		return getDataManager().get(GRAVITY);
 	}
 
-	private void setGravity(float gravity) {
+	protected void setGravity(float gravity) {
 		getDataManager().set(GRAVITY, gravity);
 		getDataManager().setDirty(GRAVITY);
 	}
 
-	private float getDistance() {
+	protected float getDistance() {
 		return getDataManager().get(DIST);
 	}
 
-	private void setDistance(float dist) {
+	protected void setDistance(float dist) {
 		getDataManager().set(DIST, dist);
 		getDataManager().setDirty(DIST);
+	}
+	
+	protected boolean doesRender()
+	{
+		return getDataManager().get(RENDER);
+	}
+	
+	protected void setRender(boolean render)
+	{
+		getDataManager().set(RENDER, render);
+		getDataManager().setDirty(RENDER);
 	}
 
 	@Override
 	public void onUpdate() {
 		super.onUpdate();
+		if (isDead) return;
 
 		SpellRing spellRing = getSpellRing();
 		SpellData spellData = getSpellData();
@@ -148,37 +163,39 @@ public class EntitySpellProjectile extends EntityMod {
 			return;
 		}
 
+		if (world.isRemote && doesRender()) {
+			ClientRunnable.run(new ClientRunnable() {
+				@Override
+				@SideOnly(Side.CLIENT)
+				public void runIfClient() {
+					if (spellRing.getModule() instanceof ModuleShape)
+						if (((ModuleShape) spellRing.getModule()).runRenderOverrides(spellData, spellRing))
+							return;
 
-		if (world.isRemote && !isDead) {
-			ClientRunnable.run(() -> {
+					ParticleBuilder glitter = new ParticleBuilder(10);
+					glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
+					glitter.enableMotionCalculation();
+					glitter.setCollision(true);
+					glitter.setCanBounce(true);
+					glitter.setColorFunction(new InterpColorHSV(spellRing.getPrimaryColor(), spellRing.getSecondaryColor()));
+					glitter.setAcceleration(new Vec3d(0, -0.015, 0));
+					ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector().add(new Vec3d(motionX, motionY, motionZ))), 5, 0, (aFloat, particleBuilder) -> {
+						particleBuilder.setScaleFunction(new InterpScale((float) RandUtil.nextDouble(0.3, 0.8), 0));
+						particleBuilder.setLifetime(RandUtil.nextInt(40, 60));
+						particleBuilder.addMotion(new Vec3d(
+								RandUtil.nextDouble(-0.03, 0.03),
+								RandUtil.nextDouble(-0.01, 0.05),
+								RandUtil.nextDouble(-0.03, 0.03)
+						));
+					});
 
-				if (spellRing.getModule() instanceof ModuleShape)
-					if (((ModuleShape) spellRing.getModule()).runRenderOverrides(spellData, spellRing))
-						return;
-
-				ParticleBuilder glitter = new ParticleBuilder(10);
-				glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-				glitter.enableMotionCalculation();
-				glitter.setCollision(true);
-				glitter.setCanBounce(true);
-				glitter.setColorFunction(new InterpColorHSV(spellRing.getPrimaryColor(), spellRing.getSecondaryColor()));
-				glitter.setAcceleration(new Vec3d(0, -0.015, 0));
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector().add(new Vec3d(motionX, motionY, motionZ))), 5, 0, (aFloat, particleBuilder) -> {
-					particleBuilder.setScaleFunction(new InterpScale((float) RandUtil.nextDouble(0.3, 0.8), 0));
-					particleBuilder.setLifetime(RandUtil.nextInt(40, 60));
-					particleBuilder.addMotion(new Vec3d(
-							RandUtil.nextDouble(-0.03, 0.03),
-							RandUtil.nextDouble(-0.01, 0.05),
-							RandUtil.nextDouble(-0.03, 0.03)
-					));
-				});
-
-				glitter.disableMotionCalculation();
-				glitter.setMotion(Vec3d.ZERO);
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector()), 5, 0, (aFloat, particleBuilder) -> {
-					particleBuilder.setScaleFunction(new InterpScale(RandUtil.nextFloat(1f, 2), 0));
-					particleBuilder.setLifetime(RandUtil.nextInt(5, 10));
-				});
+					glitter.disableMotionCalculation();
+					glitter.setMotion(Vec3d.ZERO);
+					ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector()), 5, 0, (aFloat, particleBuilder) -> {
+						particleBuilder.setScaleFunction(new InterpScale(RandUtil.nextFloat(1f, 2), 0));
+						particleBuilder.setLifetime(RandUtil.nextInt(5, 10));
+					});
+				}
 			});
 			return;
 		}
@@ -188,6 +205,7 @@ public class EntitySpellProjectile extends EntityMod {
 		rotationPitch = spellData.getData(PITCH, 0F);
 		rotationYaw = spellData.getData(YAW, 0F);
 		Vec3d look = spellData.getData(LOOK);
+
 		if (look == null) {
 			setDead();
 			world.removeEntity(this);
@@ -199,8 +217,6 @@ public class EntitySpellProjectile extends EntityMod {
 			goBoom(spellRing, spellData);
 			return;
 		}
-
-		if (isDead) return;
 
 		if (!collided) {
 
@@ -242,6 +258,7 @@ public class EntitySpellProjectile extends EntityMod {
 
 	/**
 	 * Called when the projectile entity hits another block or entity, or reaches the end of its path.
+	 *
 	 * @param data The {@link SpellData} attached to the spell.
 	 */
 	protected void goBoom(SpellRing spellRing, SpellData data) {
@@ -249,13 +266,13 @@ public class EntitySpellProjectile extends EntityMod {
 		motionY = 0;
 		motionZ = 0;
 
-		if (spellRing.getChildRing() != null) {
+		if (spellRing.getChildRing() != null)
 			spellRing.getChildRing().runSpellRing(data);
-		}
 
-		PacketHandler.NETWORK.sendToAllAround(new PacketExplode(getPositionVector(), spellRing.getPrimaryColor(), spellRing.getSecondaryColor(), 0.3, 0.3, RandUtil.nextInt(30, 50), 10, 25, true),
-				new NetworkRegistry.TargetPoint(world.provider.getDimension(), posX, posY, posZ, 512));
-
+		if (doesRender())
+			PacketHandler.NETWORK.sendToAllAround(new PacketExplode(getPositionVector(), spellRing.getPrimaryColor(), spellRing.getSecondaryColor(), 0.3, 0.3, RandUtil.nextInt(30, 50), 10, 25, true),
+					new NetworkRegistry.TargetPoint(world.provider.getDimension(), posX, posY, posZ, 512));
+		
 		setDead();
 		world.removeEntity(this);
 	}

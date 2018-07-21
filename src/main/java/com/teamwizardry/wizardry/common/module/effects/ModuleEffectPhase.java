@@ -12,6 +12,7 @@ import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.ModuleEffect;
 import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
+import com.teamwizardry.wizardry.api.spell.module.ModuleRegistry;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.util.BlockUtils;
 import com.teamwizardry.wizardry.api.util.RandUtil;
@@ -74,11 +75,10 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 		BlockPos targetPos = spell.getTargetPos();
 		if (targetPos == null) return;
 
-		NemezTracker nemezDrive = SpellNemezTracker.getNemezDrive(spell.world, targetPos);
+		NemezTracker nemezDrive = SpellNemezTracker.getAndRemoveNemezDrive(spell.world, targetPos);
 
 		if (nemezDrive != null) {
 			NemezEventHandler.reverseTime(spell.world, nemezDrive, targetPos);
-			SpellNemezTracker.removeNemezDrive(spell.world, targetPos);
 		}
 	}
 
@@ -99,10 +99,11 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 		if (targetEntity instanceof EntityLivingBase) {
 			EntityLivingBase entity = (EntityLivingBase) targetEntity;
 			entity.addPotionEffect(new PotionEffect(ModPotions.PHASE, (int) duration, 0, true, false));
-			spell.world.playSound(null, targetEntity.getPosition(), ModSounds.ETHEREAL_PASS_BY, SoundCategory.NEUTRAL, 1, 1);
+			spell.world.playSound(null, targetEntity.getPosition(), ModSounds.ETHEREAL, SoundCategory.NEUTRAL, 1, 1);
 		}
 
 		if (targetPos != null && faceHit != null) {
+			spell.world.playSound(null, targetPos, ModSounds.ETHEREAL, SoundCategory.NEUTRAL, 1, 1);
 			NemezTracker nemezDrive = SpellNemezTracker.getOrCreateNemezDrive(spell.world, targetPos);
 			BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(targetPos);
 
@@ -347,10 +348,10 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 	@NotNull
 	@Override
 	public SpellData renderVisualization(@Nonnull SpellData data, @Nonnull SpellRing ring, @Nonnull SpellData previousData) {
-		//if (ring.getParentRing() != null
-		//		&& ring.getParentRing().getModule() != null
-		//		&& ring.getParentRing().getModule() == ModuleRegistry.INSTANCE.getModule("event_collide_entity"))
-		//	return previousData;
+		if (ring.getParentRing() != null
+				&& ring.getParentRing().getModule() != null
+				&& ring.getParentRing().getModule() == ModuleRegistry.INSTANCE.getModule("event_collide_entity"))
+			return previousData;
 
 		BlockPos targetPos = data.getData(SpellData.DefaultKeys.BLOCK_HIT);
 		EnumFacing faceHit = data.getFaceHit();

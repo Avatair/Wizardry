@@ -32,10 +32,11 @@ public class PacketRenderLightningBolt extends PacketBase {
 		this.from = from;
 		this.to = to;
 		this.seed = seed;
+		this.offshootRange = offshootRange;
 	}
 
 	@Override
 	public void handle(@Nonnull MessageContext messageContext) {
-		LightningRenderer.addBolt(LightningGenerator.generate(new RandUtilSeed(seed), from, to, offshootRange), RandUtil.nextInt(10, 15));
+		LightningRenderer.addBolt(LightningGenerator.generate(new RandUtilSeed(seed), from, to, offshootRange), RandUtil.nextInt(20, 25));
 	}
 }

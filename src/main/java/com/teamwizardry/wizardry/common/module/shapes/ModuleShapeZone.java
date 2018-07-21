@@ -45,6 +45,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
 public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 
 	public static final String ZONE_OFFSET = "zone offset";
+	public static final String ZONE_CAST = "zone cast";
 	
 	@Nonnull
 	@Override
@@ -64,8 +65,6 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 
 	@Override
 	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (runRunOverrides(spell, spellRing)) return true;
-
 		World world = spell.world;
 //		Vec3d position = spell.getData(ORIGIN);
 //		Entity caster = spell.getCaster();
@@ -82,14 +81,18 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 		
 		NBTTagCompound info = spellRing.getInformationTag();
 		double zoneOffset = info.getDouble(ZONE_OFFSET) + potency;
-		while (zoneOffset >= ConfigValues.zoneTimer)
+		info.setBoolean(ZONE_CAST, false);
+		if (zoneOffset >= ConfigValues.zoneTimer)
 		{
-			zoneOffset -= ConfigValues.zoneTimer;
+			zoneOffset %= ConfigValues.zoneTimer;
 			if (!spellRing.taxCaster(spell))
 			{
-				info.setDouble(ZONE_OFFSET, zoneOffset % ConfigValues.zoneTimer);
+				info.setDouble(ZONE_OFFSET, zoneOffset);
 				return false;
 			}
+			
+			runRunOverrides(spell, spellRing);
+			
 			BlockPos target = new BlockPos(RandUtil.nextDouble(min.x, max.x), RandUtil.nextDouble(min.y, max.y), RandUtil.nextDouble(min.z, max.z));
 			List<Entity> entities = world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(target));
 			for (Entity entity : entities)
