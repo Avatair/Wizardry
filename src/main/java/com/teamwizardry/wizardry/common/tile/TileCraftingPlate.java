@@ -7,7 +7,7 @@ import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.librarianlib.features.saving.Module;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.librarianlib.features.tesr.TileRenderer;
-import com.teamwizardry.librarianlib.features.utilities.client.ClientRunnable;
+import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.block.TileManaInteractor;
@@ -22,9 +22,10 @@ import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.client.render.block.TileCraftingPlateRenderer;
 import com.teamwizardry.wizardry.common.block.BlockCraftingPlate;
+import com.teamwizardry.wizardry.common.network.PacketAddItemCraftingPlate;
 import com.teamwizardry.wizardry.common.network.PacketExplode;
-import com.teamwizardry.wizardry.init.ModEnchantments;
 import com.teamwizardry.wizardry.common.network.PacketUpdateCraftingPlateRenderer;
+import com.teamwizardry.wizardry.init.ModEnchantments;
 import com.teamwizardry.wizardry.init.ModSounds;
 import com.teamwizardry.wizardry.utils.InfusedItemStackNBTData;
 import com.teamwizardry.wizardry.utils.InfusionHelper;
@@ -49,6 +50,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
@@ -62,7 +64,7 @@ import java.util.Random;
 /**
  * Created by Demoniaque on 6/10/2016.
  */
-@TileRegister("crafting_plate")
+@TileRegister(Wizardry.MODID + ":crafting_plate")
 @TileRenderer(TileCraftingPlateRenderer.class)
 public class TileCraftingPlate extends TileManaInteractor {
 
@@ -76,15 +78,39 @@ public class TileCraftingPlate extends TileManaInteractor {
 	}
 
 	@Module
-	public ModuleInventory realInventory = new ModuleInventory(1000);
+	public ModuleInventory realInventory = new ModuleInventory(new ItemStackHandler(1000) {
+
+		@Override
+		public int getSlotLimit(int slot) {
+			markDirty();
+			return 1;
+		}
+
+		@Override
+		protected void onContentsChanged(int slot) {
+			markDirty();
+
+			if (!world.isRemote) {
+				PacketHandler.NETWORK.sendToAllAround(new PacketUpdateCraftingPlateRenderer(pos, slot), new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
+			}
+		}
+
+	});
+
 	@Module
 	public ModuleInventory inputPearl = new ModuleInventory(new ItemStackHandler() {
 		@Override
+		protected void onContentsChanged(int slot) {
+			markDirty();
+		}
+
+		@Override
 		protected int getStackLimit(int slot, @Nonnull ItemStack stack) {
+			markDirty();
 			IInfusable infusable = InfusionHelper.getInfusable(stack.getItem());
 			boolean canBeInfused = infusable != null && infusable.canBeInfused(stack);
 			if (infusable != null && canBeInfused)
-				return super.getStackLimit(slot, stack);
+				return 1;
 			else return 0;
 		}
 	});
@@ -92,10 +118,16 @@ public class TileCraftingPlate extends TileManaInteractor {
 	@Module
 	public ModuleInventory outputPearl = new ModuleInventory(new ItemStackHandler() {
 		@Override
+		protected void onContentsChanged(int slot) {
+			markDirty();
+		}
+
+		@Override
 		protected int getStackLimit(int slot, @Nonnull ItemStack stack) {
+			markDirty();
 			IInfusable infusable = InfusionHelper.getInfusable(stack.getItem());
 			if (infusable != null)
-				return super.getStackLimit(slot, stack);
+				return 1;
 			else return 0;
 		}
 	});
@@ -103,6 +135,8 @@ public class TileCraftingPlate extends TileManaInteractor {
 	@Save
 	public boolean revealStructure = false;
 	public Random random = new Random(getPos().toLong());
+	@Save
+	public int suckingCooldown = 0;
 
 	public TileCraftingPlate() {
 		super(0, 0);
@@ -125,16 +159,29 @@ public class TileCraftingPlate extends TileManaInteractor {
 	}
 
 	@Override
+	public void onSuckFrom(TileManaInteractor from) {
+		super.onSuckFrom(from);
+
+		suckingCooldown = 10;
+		markDirty();
+	}
+
+	@Override
 	public void update() {
 		super.update();
 
-		if (!((BlockCraftingPlate) getBlockType()).isStructureComplete(getWorld(), getPos())) return;
+		if (suckingCooldown > 0) {
+			suckingCooldown--;
+			//markDirty();
+		}
 
-		if (!new CapManager(getWizardryCap()).isManaFull()) {
+		if (!((BlockCraftingPlate) getBlockType()).testStructure(getWorld(), getPos()).isEmpty()) return;
+
+		if (!CapManager.isManaFull(getWizardryCap())) {
 			for (BlockPos relative : poses) {
 				BlockPos target = getPos().add(relative);
 				TileEntity tile = world.getTileEntity(target);
-				if (tile != null && tile instanceof TilePearlHolder) {
+				if (tile instanceof TilePearlHolder) {
 					if (!((TilePearlHolder) tile).isPartOfStructure) {
 						((TilePearlHolder) tile).isPartOfStructure = true;
 						((TilePearlHolder) tile).structurePos = getPos();
@@ -145,11 +192,11 @@ public class TileCraftingPlate extends TileManaInteractor {
 		}
 
 		for (EntityItem entityItem : world.getEntitiesWithinAABB(EntityItem.class, new AxisAlignedBB(pos))) {
+			if (entityItem.getItem().isEmpty()) continue;
 			if (hasInputPearl()) break;
 			
 			IInfusable infusable = InfusionHelper.getInfusable(entityItem.getItem().getItem());
 			boolean canBeInfused = infusable != null && infusable.canBeInfused(entityItem.getItem());
-
 
 			if (!isInventoryEmpty() && canBeInfused) {
 
@@ -160,34 +207,24 @@ public class TileCraftingPlate extends TileManaInteractor {
 				inputPearl.getHandler().setStackInSlot(0, stack);
 
 			} else if (!canBeInfused) {
+
 				ItemStack stack = entityItem.getItem().copy();
 				stack.setCount(1);
-				entityItem.getItem().shrink(1);
 
-				for (int i = 0; i < realInventory.getHandler().getSlots(); i++) {
-					if (realInventory.getHandler().getStackInSlot(i).isEmpty()) {
-						realInventory.getHandler().setStackInSlot(i, stack);
+				if (!world.isRemote) {
+					PacketHandler.NETWORK.sendToAllAround(new PacketAddItemCraftingPlate(getPos(), stack), new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
+				}
+				ItemStack left = ItemHandlerHelper.insertItem(realInventory.getHandler(), stack, false);
 
-						ClientRunnable.run(new ClientRunnable() {
-							@Override
-							@SideOnly(Side.CLIENT)
-							public void runIfClient() {
-								if (renderHandler != null)
-									((TileCraftingPlateRenderer) renderHandler).addAnimation();
-							}
-						});
-						break;
-					}
+				if (left.isEmpty()) {
+					entityItem.getItem().shrink(1);
 				}
 			}
-
-			markDirty();
 		}
 
 		if (hasInputPearl() && !isInventoryEmpty()) {
-			CapManager manager = new CapManager(getInputPearl());
 
-			if (manager.isManaFull()) {
+			if (CapManager.isManaFull(getInputPearl())) {
 
 				ArrayList<ItemStack> stacks = new ArrayList<>();
 
@@ -197,7 +234,7 @@ public class TileCraftingPlate extends TileManaInteractor {
 						realInventory.getHandler().setStackInSlot(i, ItemStack.EMPTY);
 					}
 				}
-				
+
 				ItemStack infusedProduct;
 				String prefix = "";
 				
@@ -222,7 +259,6 @@ public class TileCraftingPlate extends TileManaInteractor {
 				else {
 					infusedProduct = inputStack.copy();
 				}
-				
 				inputPearl.getHandler().setStackInSlot(0, ItemStack.EMPTY);
 				outputPearl.getHandler().setStackInSlot(0, infusedProduct);
 
@@ -231,9 +267,8 @@ public class TileCraftingPlate extends TileManaInteractor {
 				//float[] hsv = ColorUtils.getHSVFromColor(lastColor);
 				//ItemNBTHelper.setFloat(infusedPearl, "hue", hsv[0]);
 				//ItemNBTHelper.setFloat(infusedPearl, "saturation", hsv[1]);
-				REVISE ME!
-				ItemNBTHelper.setFloat(infusedPearl, Constants.NBT.RAND, world.rand.nextFloat());
-				ItemNBTHelper.setBoolean(infusedPearl, "infused", true);
+				//ItemNBTHelper.setFloat(infusedPearl, Constants.NBT.RAND, world.rand.nextFloat());
+				//ItemNBTHelper.setBoolean(infusedPearl, "infused", true);
 
 				// Process spellData multipliers based on nacre quality
 				double pearlMultiplier = 1;
@@ -247,27 +282,18 @@ public class TileCraftingPlate extends TileManaInteractor {
 						pearlMultiplier = 1 - (base * base * base * base);
 					}
 				}
-				
-				SpellBuilder builder = new SpellBuilder(stacks, pearlMultiplier);
-				
-				new InfusedItemStackNBTData(prefix)
-					.setRand(world.rand.nextFloat())
-					.setSpellList(builder)
-					.setPearlType(EnumPearlType.INFUSED)
-						.assignToStack(infusedProduct);
-				
-				ClientRunnable.run(new ClientRunnable() {
-					@Override
-					@SideOnly(Side.CLIENT)
-					public void runIfClient() {
-						if (renderHandler != null)
-							((TileCraftingPlateRenderer) renderHandler).clearAll();
-					}
-				});
 
+				SpellBuilder builder = new SpellBuilder(stacks, pearlMultiplier);
+
+				new InfusedItemStackNBTData(prefix)
+				.setRand(world.rand.nextFloat())
+				.setSpellList(builder)
+				.setPearlType(EnumPearlType.INFUSED)
+					.assignToStack(infusedProduct);
+			
 				markDirty();
 
-				PacketHandler.NETWORK.sendToAllAround(new PacketExplode(new Vec3d(pos).addVector(0.5, 0.5, 0.5), Color.CYAN, Color.BLUE, 2, 2, 500, 300, 20, true),
+				PacketHandler.NETWORK.sendToAllAround(new PacketExplode(new Vec3d(pos).add(0.5, 0.5, 0.5), Color.CYAN, Color.BLUE, 2, 2, 500, 300, 20, true),
 						new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
 
 				world.playSound(null, getPos(), ModSounds.BASS_BOOM, SoundCategory.BLOCKS, 1f, (float) RandUtil.nextDouble(1, 1.5));
@@ -278,7 +304,7 @@ public class TileCraftingPlate extends TileManaInteractor {
 					final double upperMag = 3;
 					final double scale = 0.8;
 					double mag = upperMag * (scale * dist / (-scale * dist - 1) + 1);
-					Vec3d dir = entity1.getPositionVector().subtract(new Vec3d(pos).addVector(0.5, 0.5, 0.5)).normalize().scale(mag);
+					Vec3d dir = entity1.getPositionVector().subtract(new Vec3d(pos).add(0.5, 0.5, 0.5)).normalize().scale(mag);
 
 					entity1.motionX = (dir.x);
 					entity1.motionY = (dir.y);

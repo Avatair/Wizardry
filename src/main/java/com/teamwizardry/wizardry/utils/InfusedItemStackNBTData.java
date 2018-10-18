@@ -82,5 +82,7 @@ public class InfusedItemStackNBTData {
 		ItemNBTHelper.setFloat(target, prefix + Constants.NBT.RAND, rand);
 		ItemNBTHelper.setString(target, prefix + Constants.NBT.PEARL_TYPE, pearlType);
 		ItemNBTHelper.setList(target, prefix + Constants.NBT.SPELL, spellList);
+		if( EnumPearlType.INFUSED.toString().equals(pearlType) )
+			ItemNBTHelper.setBoolean(target, "infused", true);
 	}
 }

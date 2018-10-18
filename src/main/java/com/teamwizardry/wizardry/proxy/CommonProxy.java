@@ -82,7 +82,6 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.register(new EventHandler());
 		MinecraftForge.EVENT_BUS.register(new InfusionEventHandler());
 		MinecraftForge.EVENT_BUS.register(new AchievementEvents());
-		MinecraftForge.EVENT_BUS.register(new ModCapabilities());
 		MinecraftForge.EVENT_BUS.register(new ModPotionTypes());
 		MinecraftForge.EVENT_BUS.register(new ModuleEffectTimeSlow());
 		MinecraftForge.EVENT_BUS.register(new ModuleEffectLeap());
@@ -94,7 +93,6 @@ public class CommonProxy {
 		WizardryChunkCapability.init();
 
 		PacketHandler.register(PacketSendSpellToBook.class, Side.SERVER);
-		PacketHandler.register(PacketSyncCape.class, Side.SERVER);
 
 		PacketHandler.register(PacketRenderSpell.class, Side.CLIENT);
 		PacketHandler.register(PacketExplode.class, Side.CLIENT);
@@ -158,8 +156,6 @@ public class CommonProxy {
 	}
 
 	public void postInit(FMLPostInitializationEvent event) {
-		ModStructures.INSTANCE.getClass();
-
 		ModuleRegistry.INSTANCE.loadModuleOverrides();
 	}
 

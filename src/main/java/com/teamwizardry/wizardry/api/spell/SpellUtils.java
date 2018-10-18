@@ -125,7 +125,7 @@ public class SpellUtils {
 	 */
 	public static List<SpellRing> getSpellChains(@Nonnull NBTTagList list) {
 		ArrayList<SpellRing> rings = new ArrayList<>();
-		if( list == null || list.hasNoTags() )
+		if( list == null || list.isEmpty() )
 			return rings;
 		for (int i = 0; i < list.tagCount(); i++) {
 			NBTTagCompound compound = list.getCompoundTagAt(i);
