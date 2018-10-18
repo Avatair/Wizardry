@@ -116,7 +116,7 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 					ItemStack stack = heldItem.copy();
 					int oldCount = stack.getCount();
 					int subtractHand = playerIn.isSneaking() ? 64 : 1;
-					stack.setCount(oldCount - heldItem.getCount());
+					stack.setCount(oldCount + subtractHand - heldItem.getCount());
 
 					IInfusable infusable = InfusionHelper.getInfusable(stack.getItem());
 					boolean canBeInfused = infusable != null && infusable.canBeInfused(stack);
