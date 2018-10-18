@@ -7,7 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
-import com.teamwizardry.wizardry.lib.vm.testutils.DebugUtils;
+import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class Int3Command implements ICommand {
 

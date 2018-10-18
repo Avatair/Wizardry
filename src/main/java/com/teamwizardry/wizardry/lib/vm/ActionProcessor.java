@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import com.teamwizardry.wizardry.lib.vm.testutils.DebugUtils;
+import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class ActionProcessor {
 	private HashMap<Integer, Action> registry = new HashMap<Integer, Action>();

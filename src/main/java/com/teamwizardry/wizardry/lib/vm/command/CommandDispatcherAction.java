@@ -3,7 +3,7 @@ package com.teamwizardry.wizardry.lib.vm.command;
 import com.teamwizardry.wizardry.lib.vm.Action;
 import com.teamwizardry.wizardry.lib.vm.ActionEventType;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
-import com.teamwizardry.wizardry.lib.vm.testutils.DebugUtils;
+import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class CommandDispatcherAction extends Action {
 	
