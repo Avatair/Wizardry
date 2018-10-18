@@ -24,6 +24,7 @@ import com.teamwizardry.wizardry.client.render.block.TileCraftingPlateRenderer;
 import com.teamwizardry.wizardry.common.block.BlockCraftingPlate;
 import com.teamwizardry.wizardry.common.network.PacketExplode;
 import com.teamwizardry.wizardry.init.ModEnchantments;
+import com.teamwizardry.wizardry.common.network.PacketUpdateCraftingPlateRenderer;
 import com.teamwizardry.wizardry.init.ModSounds;
 import com.teamwizardry.wizardry.utils.InfusedItemStackNBTData;
 import com.teamwizardry.wizardry.utils.InfusionHelper;
@@ -230,6 +231,9 @@ public class TileCraftingPlate extends TileManaInteractor {
 				//float[] hsv = ColorUtils.getHSVFromColor(lastColor);
 				//ItemNBTHelper.setFloat(infusedPearl, "hue", hsv[0]);
 				//ItemNBTHelper.setFloat(infusedPearl, "saturation", hsv[1]);
+				REVISE ME!
+				ItemNBTHelper.setFloat(infusedPearl, Constants.NBT.RAND, world.rand.nextFloat());
+				ItemNBTHelper.setBoolean(infusedPearl, "infused", true);
 
 				// Process spellData multipliers based on nacre quality
 				double pearlMultiplier = 1;

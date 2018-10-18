@@ -1,10 +1,10 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -49,7 +49,7 @@ public class ModuleEffectLight extends ModuleEffect {
 		EnumFacing facing = spell.getFaceHit();
 		Entity caster = spell.getCaster();
 
-		if (!spellRing.taxCaster(spell)) return false;
+		if (!spellRing.taxCaster(spell, true)) return false;
 
 		if (targetPos == null) return true;
 
@@ -77,9 +77,9 @@ public class ModuleEffectLight extends ModuleEffect {
 
 		ParticleBuilder glitter = new ParticleBuilder(30);
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-		glitter.setAlphaFunction(new InterpFadeInOut(0.3f, 0.3f));
+		glitter.setAlphaFunction(new InterpFloatInOut(0.3f, 0.3f));
 		glitter.enableMotionCalculation();
-		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(finalPos).addVector(0.5, 0.5, 0.5)), 500, 0, (i, build) -> {
+		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(finalPos).add(0.5, 0.5, 0.5)), 500, 0, (i, build) -> {
 			double radius = 1;
 			double theta = 2.0f * (float) Math.PI * RandUtil.nextFloat();
 			double r = radius * RandUtil.nextFloat();

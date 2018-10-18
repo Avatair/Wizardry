@@ -1,9 +1,9 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.IDelayedModule;
@@ -58,7 +58,6 @@ import static com.teamwizardry.wizardry.api.util.PosUtils.getPerpendicularFacing
 @RegisterModule
 public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 
-
 	@Nonnull
 	@Override
 	public String getID() {
@@ -83,7 +82,6 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 	}
 
 	@Override
-	@SuppressWarnings("unused")
 	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		Entity caster = spell.getCaster();
 		Entity targetEntity = spell.getVictim();
@@ -94,7 +92,7 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 		double area = spellRing.getAttributeValue(AttributeRegistry.AREA, spell);
 		double range = spellRing.getAttributeValue(AttributeRegistry.RANGE, spell);
 
-		if (!spellRing.taxCaster(spell)) return false;
+		if (!spellRing.taxCaster(spell, true)) return false;
 
 		if (targetEntity instanceof EntityLivingBase) {
 			EntityLivingBase entity = (EntityLivingBase) targetEntity;
@@ -236,6 +234,7 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 			}
 
 			nemezDrive.endUpdate();
+			nemezDrive.collapse();
 
 			//spell.addData(SpellData.DefaultKeys.NEMEZ, nemezDrive.serializeNBT());
 			spell.addData(SpellData.DefaultKeys.BLOCK_SET, poses);
@@ -268,9 +267,9 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 				ParticleBuilder glitter2 = new ParticleBuilder(10);
 				glitter2.setRenderNormalLayer(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
 				glitter2.disableRandom();
-				ParticleSpawner.spawn(glitter2, spell.world, new StaticInterp<>(new Vec3d(entry.getKey()).addVector(0.5, 0.5, 0.5)), 5, (int) duration, (aFloat, build) -> {
+				ParticleSpawner.spawn(glitter2, spell.world, new StaticInterp<>(new Vec3d(entry.getKey()).add(0.5, 0.5, 0.5)), 5, (int) duration, (aFloat, build) -> {
 					build.setColor(Color.CYAN);
-					//build.setAlphaFunction(new InterpFadeInOut(1f, 0.1f));
+					//build.setAlphaFunction(new InterpFloatInOut(1f, 0.1f));
 					build.setAlpha(RandUtil.nextFloat(0.05f, 0.2f));
 
 					build.setPositionOffset(new Vec3d(
@@ -284,7 +283,7 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 							RandUtil.nextDouble(-0.001, 0.001)
 					));
 					build.setLifetime(RandUtil.nextInt(20, 40));
-					build.setScaleFunction(new InterpFadeInOut(0.9f, 0.9f));
+					build.setScaleFunction(new InterpFloatInOut(0.9f, 0.9f));
 					build.setScale(RandUtil.nextFloat(0.1f, 0.3f));
 				});
 
@@ -301,7 +300,7 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 					if (adjState.getBlock() != Blocks.AIR && adjState.getBlock() != ModBlocks.FAKE_AIR) {
 
 						Vec3d directionOffsetVec = new Vec3d(facing.getOpposite().getDirectionVec()).scale(0.5);
-						Vec3d adjPos = new Vec3d(mutable).addVector(0.5, 0.5, 0.5).add(directionOffsetVec);
+						Vec3d adjPos = new Vec3d(mutable).add(0.5, 0.5, 0.5).add(directionOffsetVec);
 
 						for (EnumFacing subFacing : getPerpendicularFacings(facing)) {
 							mutable.move(subFacing);
@@ -313,7 +312,7 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 							} else subState = blockStateCache.get(mutable);
 
 							if (BlockUtils.isAnyAir(subState)) {
-								Vec3d subPos = new Vec3d(mutable).addVector(0.5, 0.5, 0.5).add(directionOffsetVec);
+								Vec3d subPos = new Vec3d(mutable).add(0.5, 0.5, 0.5).add(directionOffsetVec);
 								Vec3d midPointVec = new Vec3d(
 										(adjPos.x + subPos.x) / 2.0,
 										(adjPos.y + subPos.y) / 2.0,
@@ -327,12 +326,12 @@ public class ModuleEffectPhase extends ModuleEffect implements IDelayedModule {
 								glitter.disableRandom();
 								ParticleSpawner.spawn(glitter, spell.world, new StaticInterp<>(midPointVec), 50, (int) duration, (aFloat, build) -> {
 									build.setColor(Color.CYAN);
-									//build.setAlphaFunction(new InterpFadeInOut(1f, 0.1f));
+									//build.setAlphaFunction(new InterpFloatInOut(1f, 0.1f));
 									build.setAlpha(RandUtil.nextFloat(0.3f, 0.7f));
 
 									build.setPositionOffset(cross.scale(RandUtil.nextFloat(-1, 1)));
 									build.setLifetime(RandUtil.nextInt(20, 40));
-									build.setScaleFunction(new InterpFadeInOut(0.9f, 0.9f));
+									build.setScaleFunction(new InterpFloatInOut(0.9f, 0.9f));
 									build.setScale(RandUtil.nextFloat(0.2f, 0.5f));
 								});
 							}

@@ -29,8 +29,7 @@ import static org.lwjgl.opengl.GL11.GL_POLYGON_OFFSET_FILL;
 /**
  * Created by Demoniaque.
  */
-@SideOnly(Side.CLIENT)
-@Mod.EventBusSubscriber(modid = Wizardry.MODID)
+@Mod.EventBusSubscriber(modid = Wizardry.MODID, value = Side.CLIENT)
 public class PhasedBlockRenderer {
 
 	public static final float WARP_TIME_PERIOD = 40f;
@@ -159,9 +158,9 @@ public class PhasedBlockRenderer {
 			this.face = face;
 			this.position = position;
 
-			xNormal = -face.getFrontOffsetX();
-			yNormal = -face.getFrontOffsetY();
-			zNormal = -face.getFrontOffsetZ();
+			xNormal = -face.getXOffset();
+			yNormal = -face.getYOffset();
+			zNormal = -face.getZOffset();
 
 			int direction = -face.getAxisDirection().getOffset();
 			int renderDirection = face.getAxis().isHorizontal() ? direction : -direction;
@@ -225,9 +224,9 @@ public class PhasedBlockRenderer {
 
 			for (BlockPos pos : places) {
 				for (EnumFacing facing : EnumFacing.VALUES) {
-					VISITOR.setPos(pos.getX() + facing.getFrontOffsetX(),
-							pos.getY() + facing.getFrontOffsetY(),
-							pos.getZ() + facing.getFrontOffsetZ());
+					VISITOR.setPos(pos.getX() + facing.getXOffset(),
+							pos.getY() + facing.getYOffset(),
+							pos.getZ() + facing.getZOffset());
 
 					if (!places.contains(VISITOR))
 						faces.add(new SurfaceFace(facing, pos, locus));

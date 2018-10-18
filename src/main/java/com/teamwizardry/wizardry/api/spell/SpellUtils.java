@@ -145,7 +145,7 @@ public class SpellUtils {
 			NBTBase base = list.get(i);
 			if (!(base instanceof NBTTagString)) continue;
 			NBTTagString string = (NBTTagString) base;
-			if (string.hasNoTags())
+			if (string.isEmpty())
 			{
 				if (!moduleList.isEmpty())
 					modules.add(moduleList);

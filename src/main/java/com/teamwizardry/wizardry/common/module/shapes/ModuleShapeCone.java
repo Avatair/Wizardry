@@ -4,7 +4,7 @@ import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpLi
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -69,6 +69,8 @@ public class ModuleShapeCone extends ModuleShape {
 
 		for (int i = 0; i < potency; i++) {
 
+			if (!spellRing.taxCaster(spell, 1.0 / potency, true)) return false;
+			
 			long seed = RandUtil.nextLong(100, 10000);
 			spell.addData(SEED, seed);
 			runRunOverrides(spell, spellRing);
@@ -81,7 +83,9 @@ public class ModuleShapeCone extends ModuleShape {
 
 			SpellData newSpell = spell.copy();
 
-			RayTraceResult result = new RayTrace(world, target.normalize(), origin, range).setSkipEntity(caster).trace();
+			RayTraceResult result = new RayTrace(world, target.normalize(), origin, range)
+					.setEntityFilter(input -> input != caster)
+					.trace();
 
 			Vec3d lookFallback = spell.getData(LOOK);
 			if (lookFallback != null) lookFallback.scale(range);
@@ -116,7 +120,7 @@ public class ModuleShapeCone extends ModuleShape {
 		lines.setScaleFunction(new InterpScale(0.5f, 0));
 		lines.setColorFunction(new InterpColorHSV(spellRing.getPrimaryColor(), spellRing.getSecondaryColor()));
 		ParticleSpawner.spawn(lines, spell.world, new InterpLine(origin, target), (int) target.distanceTo(origin) * 4, 0, (aFloat, particleBuilder) -> {
-			lines.setAlphaFunction(new InterpFadeInOut(0.3f, 0.3f));
+			lines.setAlphaFunction(new InterpFloatInOut(0.3f, 0.3f));
 			lines.setLifetime(RandUtil.nextInt(10, 20));
 		});
 	}

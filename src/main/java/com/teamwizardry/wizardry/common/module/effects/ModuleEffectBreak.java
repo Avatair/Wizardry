@@ -1,8 +1,5 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
-import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.BLOCK_HIT;
-import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.FACE_HIT;
-
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
@@ -30,6 +27,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.Set;
+
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.BLOCK_HIT;
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.FACE_HIT;
 
 /**
  * Created by Demoniaque.
@@ -62,24 +62,24 @@ public class ModuleEffectBreak extends ModuleEffect {
 		if (targetEntity instanceof EntityLivingBase)
 			for (ItemStack stack : targetEntity.getArmorInventoryList())
 				stack.damageItem((int) strength, (EntityLivingBase) targetEntity);
-		if (targetPos != null)
+		
+		if (targetPos == null || facing == null) return false;
+		Set<BlockPos> blocks = BlockUtils.blocksInSquare(targetPos, facing, (int) range, (int) ((Math.sqrt(range)+1)/2), pos ->
 		{
-			Set<BlockPos> blocks = BlockUtils.blocksInSquare(targetPos, facing, (int) range, (int) ((Math.sqrt(range)+1)/2), pos ->
-			{
-				BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
-				if (!world.isAirBlock(mutable.offset(facing))) return true;
-				IBlockState state = world.getBlockState(pos);
-				if (BlockUtils.isAnyAir(state)) return true;
-				
-				float hardness = state.getBlockHardness(world, pos);
-				return hardness < 0 || hardness > strength;
-			});
-			for (BlockPos pos : blocks)
-			{
-				if (!spellRing.taxCaster(spell, 1/range)) continue;
-				BlockUtils.breakBlock(world, pos, null, caster instanceof EntityPlayer ? (EntityPlayerMP) caster : null, true);
-			}
+			BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
+			if (!world.isAirBlock(mutable.offset(facing))) return true;
+			IBlockState state = world.getBlockState(pos);
+			if (BlockUtils.isAnyAir(state)) return true;
+			
+			float hardness = state.getBlockHardness(world, pos);
+			return hardness < 0 || hardness > strength;
+		});
+		for (BlockPos pos : blocks)
+		{
+			if (!spellRing.taxCaster(spell, 1 / range, false)) continue;
+			BlockUtils.breakBlock(world, pos, null, caster instanceof EntityPlayer ? (EntityPlayerMP) caster : null, true);
 		}
+		
 		return true;
 	}
 
@@ -105,47 +105,35 @@ public class ModuleEffectBreak extends ModuleEffect {
 		World world = data.world;
 		BlockPos targetPos = data.getData(BLOCK_HIT);
 		EnumFacing facing = data.getData(FACE_HIT);
-		Entity targetEntity = data.getVictim();
 
 		double range = ring.getAttributeValue(AttributeRegistry.AREA, data);
 		double strength = ring.getAttributeValue(AttributeRegistry.POTENCY, data);
 
-		if (targetEntity instanceof EntityLivingBase)
-			for (ItemStack stack : targetEntity.getArmorInventoryList())
-				stack.damageItem((int) strength, (EntityLivingBase) targetEntity);
-		if (targetPos != null)
+		if (targetPos == null || facing == null) return previousData;
+		Set<BlockPos> blocks = BlockUtils.blocksInSquare(targetPos, facing, (int) range, (int) ((Math.sqrt(range)+1)/2), pos ->
 		{
-			Set<BlockPos> blocks = BlockUtils.blocksInSquare(targetPos, facing, (int) range, (int) ((Math.sqrt(range)+1)/2), pos ->
-			{
-				BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
-				if (!world.isAirBlock(mutable.offset(facing))) return true;
-				IBlockState state = world.getBlockState(pos);
-				if (BlockUtils.isAnyAir(state)) return true;
-				
-				float hardness = state.getBlockHardness(world, pos);
-				return hardness < 0 || hardness > strength;
-			});
-			if (blocks.isEmpty()) return previousData;
-
-			for (BlockPos pos : blocks)
-			{
-				IBlockState state = world.getBlockState(pos);
-				BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
-				for (EnumFacing face : EnumFacing.VALUES) {
-
+			BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
+			if (!world.isAirBlock(mutable.offset(facing))) return true;
+			IBlockState state = world.getBlockState(pos);
+			if (BlockUtils.isAnyAir(state)) return true;
+			
+			float hardness = state.getBlockHardness(world, pos);
+			return hardness < 0 || hardness > strength;
+		});
+		if (blocks.isEmpty()) return previousData;
+		for (BlockPos pos : blocks)
+		{
+			IBlockState state = world.getBlockState(pos);
+			BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(pos);
+			for (EnumFacing face : EnumFacing.VALUES) {
 					mutable.move(face);
-
 					IBlockState adjStat = getCachableBlockstate(data.world, mutable, previousData);
-
 					if (adjStat.getBlock() != state.getBlock() || !blocks.contains(mutable)) {
-
 						drawFaceOutline(mutable, face.getOpposite());
-					}
-					mutable.move(face.getOpposite());
 				}
+				mutable.move(face.getOpposite());
 			}
 		}
-
 		return previousData;
 	}
 }

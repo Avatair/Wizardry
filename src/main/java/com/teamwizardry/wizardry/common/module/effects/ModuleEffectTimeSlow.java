@@ -4,7 +4,7 @@ import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -86,7 +86,7 @@ public class ModuleEffectTimeSlow extends ModuleEffect {
 		if (targetEntity instanceof EntityLivingBase) {
 			double potency = spellRing.getAttributeValue(AttributeRegistry.POTENCY, spell);
 			double duration = spellRing.getAttributeValue(AttributeRegistry.DURATION, spell) * 10;
-			if (!spellRing.taxCaster(spell)) return false;
+			if (!spellRing.taxCaster(spell, true)) return false;
 
 			((EntityLivingBase) targetEntity).addPotionEffect(new PotionEffect(ModPotions.TIME_SLOW, (int) duration, (int) potency, true, false));
 		}
@@ -113,7 +113,7 @@ public class ModuleEffectTimeSlow extends ModuleEffect {
 		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(position), 5, 0, (aFloat, particleBuilder) -> {
 			glitter.setLifetime(RandUtil.nextInt(40, 80));
 			glitter.setScaleFunction(new InterpScale(RandUtil.nextFloat(0.5f, 1f), 0f));
-			glitter.setAlphaFunction(new InterpFadeInOut(0.5f, 0.5f));
+			glitter.setAlphaFunction(new InterpFloatInOut(0.5f, 0.5f));
 
 			double radius = RandUtil.nextDouble(0, 2);
 			double theta = 2.0f * (float) Math.PI * RandUtil.nextFloat();

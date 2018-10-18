@@ -3,18 +3,19 @@ package com.teamwizardry.wizardry.common.block;
 import com.teamwizardry.librarianlib.features.base.block.tile.BlockModContainer;
 import com.teamwizardry.librarianlib.features.helpers.ItemNBTHelper;
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import com.teamwizardry.librarianlib.features.utilities.client.ClientRunnable;
 import com.teamwizardry.wizardry.api.Constants;
-import com.teamwizardry.wizardry.api.block.CachedStructure;
 import com.teamwizardry.wizardry.api.block.IStructure;
+import com.teamwizardry.wizardry.api.block.WizardryStructureRenderCompanion;
 import com.teamwizardry.wizardry.api.item.IInfusable;
 import com.teamwizardry.wizardry.api.spell.SpellBuilder;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.SpellUtils;
 import com.teamwizardry.wizardry.api.util.RandUtil;
-import com.teamwizardry.wizardry.client.render.block.TileCraftingPlateRenderer;
+import com.teamwizardry.wizardry.common.network.PacketAddItemCraftingPlate;
 import com.teamwizardry.wizardry.common.network.PacketExplode;
+import com.teamwizardry.wizardry.common.network.PacketRemoveItemCraftingPlate;
 import com.teamwizardry.wizardry.common.tile.TileCraftingPlate;
+import com.teamwizardry.wizardry.init.ModBlocks;
 import com.teamwizardry.wizardry.init.ModItems;
 import com.teamwizardry.wizardry.init.ModSounds;
 import com.teamwizardry.wizardry.init.ModStructures;
@@ -37,8 +38,7 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -75,9 +75,11 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 
 	@Override
 	public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+		if (worldIn.isRemote) return true;
+
 		ItemStack heldItem = playerIn.getHeldItem(hand);
 
-		if (isStructureComplete(worldIn, pos)) {
+		if (testStructure(worldIn, pos).isEmpty()) {
 			TileCraftingPlate plate = getTE(worldIn, pos);
 			if (!plate.inputPearl.getHandler().getStackInSlot(0).isEmpty()) return false;
 			if (!heldItem.isEmpty()) {
@@ -94,7 +96,8 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 						list.appendTag(spellRing.serializeNBT());
 					}
 					ItemNBTHelper.setList(pearl, Constants.NBT.SPELL, list);
-					
+					ItemNBTHelper.setBoolean(pearl, "infused", true);
+
 					//Color lastColor = SpellUtils.getAverageSpellColor(builder.getSpell());
 //
 					//float[] hsv = ColorUtils.getHSVFromColor(lastColor);
@@ -104,14 +107,16 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 
 					plate.outputPearl.getHandler().setStackInSlot(0, pearl);
 					plate.markDirty();
-					PacketHandler.NETWORK.sendToAllAround(new PacketExplode(new Vec3d(pos).addVector(0.5, 0.5, 0.5), Color.CYAN, Color.BLUE, 2, 2, 500, 300, 20, false),
+					PacketHandler.NETWORK.sendToAllAround(new PacketExplode(new Vec3d(pos).add(0.5, 0.5, 0.5), Color.CYAN, Color.BLUE, 2, 2, 500, 300, 20, false),
 							new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
 
 					worldIn.playSound(null, pos, ModSounds.BASS_BOOM, SoundCategory.BLOCKS, 1f, (float) RandUtil.nextDouble(1, 1.5));
 					return true;
 				} else {
 					ItemStack stack = heldItem.copy();
-					stack.setCount(1);
+					int oldCount = stack.getCount();
+					int subtractHand = playerIn.isSneaking() ? 64 : 1;
+					stack.setCount(oldCount - heldItem.getCount());
 
 					IInfusable infusable = InfusionHelper.getInfusable(stack.getItem());
 					boolean canBeInfused = infusable != null && infusable.canBeInfused(stack);
@@ -119,28 +124,22 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 					boolean itemConsumed = true;
 					if (!plate.isInventoryEmpty() && canBeInfused) {
 						plate.inputPearl.getHandler().setStackInSlot(0, stack);
-					} else if (!canBeInfused) {
-						for (int i = 0; i < plate.realInventory.getHandler().getSlots(); i++) {
-							if (plate.realInventory.getHandler().getStackInSlot(i).isEmpty()) {
-								plate.realInventory.getHandler().setStackInSlot(i, stack);
+						plate.markDirty();
 
-								ClientRunnable.run(new ClientRunnable() {
-									@Override
-									@SideOnly(Side.CLIENT)
-									public void runIfClient() {
-										if (plate.renderHandler != null)
-											((TileCraftingPlateRenderer) plate.renderHandler).addAnimation();
-									}
-								});
-								break;
-							}
-						}
+						playerIn.openContainer.detectAndSendChanges();
+						worldIn.notifyBlockUpdate(pos, state, state, 3);
+
+					} else if (!canBeInfused) {
+						ItemHandlerHelper.insertItem(plate.realInventory.getHandler(), stack, false);
+						PacketHandler.NETWORK.sendToAllAround(new PacketAddItemCraftingPlate(pos, stack), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
+						plate.markDirty();
+						playerIn.openContainer.detectAndSendChanges();
 					}
 					else
 						itemConsumed = false;
 
 					if( itemConsumed ) {
-						heldItem.shrink(1);
+						heldItem.shrink(subtractHand);
 						playerIn.openContainer.detectAndSendChanges();
 						worldIn.notifyBlockUpdate(pos, state, state, 3);
 					}
@@ -150,35 +149,23 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 
 				if (plate.hasOutputPearl()) {
 					playerIn.setHeldItem(hand, plate.outputPearl.getHandler().extractItem(0, 1, false));
+					plate.markDirty();
+
 					playerIn.openContainer.detectAndSendChanges();
-					worldIn.notifyBlockUpdate(pos, state, state, 3);
 
 					return true;
 				} else {
-					boolean empty = true;
-					for (int i = 0; i < plate.realInventory.getHandler().getSlots(); i++) {
-						if (!plate.realInventory.getHandler().getStackInSlot(i).isEmpty()) {
-							empty = false;
-							break;
-						}
-					}
-					if (!empty) {
-						for (int i = plate.realInventory.getHandler().getSlots() - 1; i >= 0; i--) {
-							ItemStack extracted = plate.realInventory.getHandler().getStackInSlot(i);
-							if (!extracted.isEmpty()) {
-								playerIn.addItemStackToInventory(plate.realInventory.getHandler().extractItem(i, extracted.getCount(), false));
-								plate.markDirty();
 
-								ClientRunnable.run(new ClientRunnable() {
-									@Override
-									@SideOnly(Side.CLIENT)
-									public void runIfClient() {
-										if (plate.renderHandler != null)
-											((TileCraftingPlateRenderer) plate.renderHandler).clearAll();
-									}
-								});
-								break;
-							}
+					for (int i = plate.realInventory.getHandler().getSlots() - 1; i >= 0; i--) {
+						ItemStack extracted = plate.realInventory.getHandler().extractItem(i, playerIn.isSneaking() ? 64 : 1, false);
+						PacketHandler.NETWORK.sendToAllAround(new PacketRemoveItemCraftingPlate(pos, i), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 256));
+						if (!extracted.isEmpty()) {
+							playerIn.addItemStackToInventory(extracted);
+							plate.markDirty();
+
+							playerIn.openContainer.detectAndSendChanges();
+
+							break;
 						}
 					}
 				}
@@ -187,7 +174,7 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 
 		} else {
 			if (playerIn.isCreative() && playerIn.isSneaking()) {
-				tickStructure(worldIn, playerIn, pos);
+				buildStructure(worldIn, pos);
 			} else {
 				TileCraftingPlate plate = getTE(worldIn, pos);
 				plate.revealStructure = !plate.revealStructure;
@@ -213,8 +200,8 @@ public class BlockCraftingPlate extends BlockModContainer implements IStructure 
 	}
 
 	@Override
-	public CachedStructure getStructure() {
-		return ModStructures.INSTANCE.structures.get("crafting_altar");
+	public WizardryStructureRenderCompanion getStructure() {
+		return ModStructures.INSTANCE.getStructure(ModBlocks.CRAFTING_PLATE);
 	}
 
 	@Override

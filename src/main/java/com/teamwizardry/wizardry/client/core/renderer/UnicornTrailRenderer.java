@@ -30,8 +30,7 @@ import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 /**
  * Created by Demoniaque.
  */
-@SideOnly(Side.CLIENT)
-@Mod.EventBusSubscriber(modid = Wizardry.MODID)
+@Mod.EventBusSubscriber(modid = Wizardry.MODID, value = Side.CLIENT)
 public class UnicornTrailRenderer {
 
 	public static HashMap<EntityUnicorn, List<Point>> positions = new HashMap<>();
@@ -63,16 +62,20 @@ public class UnicornTrailRenderer {
 			}
 
 			double mot = 0.05;
-			if (poses.size() < 1000 &&
-					(unicorn.motionX >= mot || unicorn.motionX <= -mot
-							|| unicorn.motionZ >= mot || unicorn.motionZ <= -mot)) {
+			if (poses.size() < 1000) {
+				if (unicorn.motionX >= mot || unicorn.motionX <= -mot
+						|| unicorn.motionY >= mot || unicorn.motionY <= -mot
+						|| unicorn.motionZ >= mot || unicorn.motionZ <= -mot) {
 
-				Vec3d backCenter = unicorn.getPositionVector();
-				Vec3d look = new Vec3d(unicorn.motionX, unicorn.motionY, unicorn.motionZ).normalize();
-				backCenter = backCenter.add(look.scale(-1));
+					Vec3d backCenter = unicorn.getPositionVector();
+					Vec3d look = new Vec3d(unicorn.motionX, unicorn.motionY, unicorn.motionZ).normalize();
+					backCenter = backCenter.add(look.scale(-1));
 
-				Vec3d cross = look.crossProduct(new Vec3d(0, 1, 0)).normalize().scale(0.35f);
-				poses.add(new Point(backCenter, cross, world.getTotalWorldTime()));
+					Vec3d cross = look.crossProduct(new Vec3d(0, 1, 0)).normalize().scale(0.35f);
+					poses.add(new Point(backCenter, cross, world.getTotalWorldTime()));
+				} else if (!poses.isEmpty()) {
+					poses.remove(0);
+				}
 			}
 		}
 	}
@@ -93,7 +96,7 @@ public class UnicornTrailRenderer {
 		GlStateManager.translate(-interpPosX, -interpPosY + 0.1, -interpPosZ);
 
 		GlStateManager.disableCull();
-		//GlStateManager.enableAlpha();
+		GlStateManager.depthMask(false);
 		GlStateManager.enableBlend();
 		GlStateManager.disableTexture2D();
 		GlStateManager.shadeModel(GL11.GL_SMOOTH);
@@ -123,15 +126,20 @@ public class UnicornTrailRenderer {
 					alpha = (int) (MathHelper.clamp(1 - (Math.log(sub) / 2.0), 0, 1) * 80.0);
 				}
 
-				pos(vb, pos.origin.subtract(pos.normal)).color(color.getRed(), color.getGreen(), color.getBlue(), alpha).endVertex();
-				pos(vb, pos.origin.add(pos.normal)).color(color.getRed(), color.getGreen(), color.getBlue(), alpha).endVertex();
+				pos(vb, pos.origin.subtract(pos.normal.scale(1.5))).color(color.getRed(), color.getGreen(), color.getBlue(), alpha).endVertex();
+				pos(vb, pos.origin.add(pos.normal.scale(1.5))).color(color.getRed(), color.getGreen(), color.getBlue(), alpha).endVertex();
 				q = !q;
 			}
 
 			tessellator.draw();
 		}
 
+		GlStateManager.enableCull();
+		GlStateManager.depthMask(true);
+		GlStateManager.disableBlend();
 		GlStateManager.enableTexture2D();
+		GlStateManager.shadeModel(GL11.GL_FLAT);
+		GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
 
 		GlStateManager.popMatrix();
 	}

@@ -1,17 +1,22 @@
 package com.teamwizardry.wizardry.proxy;
 
+import com.teamwizardry.librarianlib.features.gui.provided.book.helper.PageTypes;
+import com.teamwizardry.librarianlib.features.gui.provided.book.hierarchy.book.Book;
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.arena.ArenaManager;
+import com.teamwizardry.wizardry.api.capability.chunk.WizardryChunkCapability;
 import com.teamwizardry.wizardry.api.capability.world.WizardryWorldCapability;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.module.ModuleRegistry;
 import com.teamwizardry.wizardry.client.gui.GuiHandler;
+import com.teamwizardry.wizardry.client.gui.book.PageWizardryStructure;
 import com.teamwizardry.wizardry.common.advancement.AchievementEvents;
 import com.teamwizardry.wizardry.common.core.EventHandler;
 import com.teamwizardry.wizardry.common.core.InfusionEventHandler;
 import com.teamwizardry.wizardry.common.core.version.ManifestHandler;
+import com.teamwizardry.wizardry.common.item.ItemBook;
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectLeap;
 import com.teamwizardry.wizardry.common.module.effects.ModuleEffectTimeSlow;
 import com.teamwizardry.wizardry.common.network.*;
@@ -86,6 +91,7 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.register(ModPotions.BOTTLED_MAGIC);
 
 		WizardryWorldCapability.init();
+		WizardryChunkCapability.init();
 
 		PacketHandler.register(PacketSendSpellToBook.class, Side.SERVER);
 		PacketHandler.register(PacketSyncCape.class, Side.SERVER);
@@ -100,6 +106,9 @@ public class CommonProxy {
 		PacketHandler.register(PacketDevilDustFizzle.class, Side.CLIENT);
 		
 		BrewingRecipeRegistry.addRecipe(new InfusionBrewingRecipes());
+		
+		PageTypes.INSTANCE.registerPageProvider("wizardry_structure", PageWizardryStructure::new);
+		ItemBook.BOOK = new Book("book");
 	}
 
 	public void init(FMLInitializationEvent event) {
@@ -132,13 +141,13 @@ public class CommonProxy {
 			FireRecipes.INSTANCE.loadRecipes(recipeDirectory);
 		}
 
-		manaRecipeLoading:
+		moduleLoading:
 		{
 		File moduleDirectory = new File(directory, "modules");
 		if (!moduleDirectory.exists())
 			if (!moduleDirectory.mkdirs()) {
 				Wizardry.logger.error("    > SOMETHING WENT WRONG! Could not create directory " + moduleDirectory.getPath());
-					break manaRecipeLoading;
+					break moduleLoading;
 			}
 
 		ModuleRegistry.INSTANCE.loadUnprocessedModules();

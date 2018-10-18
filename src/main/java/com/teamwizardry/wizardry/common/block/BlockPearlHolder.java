@@ -1,7 +1,6 @@
 package com.teamwizardry.wizardry.common.block;
 
 import com.teamwizardry.librarianlib.features.base.block.tile.BlockModContainer;
-import com.teamwizardry.wizardry.api.capability.mana.CapManager;
 import com.teamwizardry.wizardry.client.render.block.TilePearlHolderRenderer;
 import com.teamwizardry.wizardry.common.tile.TilePearlHolder;
 import com.teamwizardry.wizardry.init.ModItems;
@@ -10,7 +9,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -46,48 +44,29 @@ public class BlockPearlHolder extends BlockModContainer {
 	}
 
 	@Override
-	public void breakBlock(World worldIn, BlockPos pos, IBlockState state) {
-		TilePearlHolder holder = getTE(worldIn, pos);
-		if (holder == null) {
-			super.breakBlock(worldIn, pos, state);
-			return;
-		}
-
-		ItemStack itemStack = holder.getItemStack();
-		if (itemStack != null && !itemStack.isEmpty()) {
-			InventoryHelper.spawnItemStack(worldIn, pos.getX(), pos.getY(), pos.getZ(), itemStack);
-		}
-		super.breakBlock(worldIn, pos, state);
-	}
-
-	@Override
 	public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
 		ItemStack heldItem = playerIn.getHeldItem(hand);
 
-		if (!worldIn.isRemote) {
-			TilePearlHolder te = getTE(worldIn, pos);
+		TilePearlHolder te = getTE(worldIn, pos);
 
-			if (!te.containsSomething()) {
-				if (heldItem.getItem() == ModItems.ORB || heldItem.getItem() == ModItems.PEARL_NACRE) {
-					te.setItemStack(heldItem.copy());
-					te.getItemStack().setCount(1);
-					heldItem.shrink(1);
-				} else return false;
+		if (!te.containsSomething()) {
+			if (heldItem.getItem() == ModItems.ORB || heldItem.getItem() == ModItems.PEARL_NACRE) {
+				te.setItemStack(heldItem.copy());
+				te.getItemStack().setCount(1);
+				heldItem.shrink(1);
+			} else return false;
 
-			} else {
-				ItemStack stack = te.getItemStack().copy();
-				CapManager manager1 = new CapManager(stack).setEntity(playerIn);
-				manager1.sync();
+		} else {
+			ItemStack stack = te.getItemStack().copy();
 
-				te.setItemStack(ItemStack.EMPTY);
-				if (playerIn.inventory.addItemStackToInventory(stack)) playerIn.openContainer.detectAndSendChanges();
-				else {
-					EntityItem entityItem = new EntityItem(worldIn, pos.getX(), pos.getY() + 1, pos.getZ(), stack);
-					worldIn.spawnEntity(entityItem);
-				}
+			te.setItemStack(ItemStack.EMPTY);
+			if (playerIn.inventory.addItemStackToInventory(stack)) playerIn.openContainer.detectAndSendChanges();
+			else {
+				EntityItem entityItem = new EntityItem(worldIn, pos.getX(), pos.getY() + 1, pos.getZ(), stack);
+				worldIn.spawnEntity(entityItem);
 			}
-			te.markDirty();
 		}
+		te.markDirty();
 		return true;
 	}
 

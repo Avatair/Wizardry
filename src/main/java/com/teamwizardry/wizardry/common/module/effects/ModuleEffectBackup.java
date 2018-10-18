@@ -1,10 +1,10 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -57,12 +57,12 @@ public class ModuleEffectBackup extends ModuleEffect {
 
 		double duration = spellRing.getAttributeValue(AttributeRegistry.DURATION, spell) * 20;
 
-		if (!spellRing.taxCaster(spell)) return false;
+		if (!spellRing.taxCaster(spell, true)) return false;
 
 		if (targetPos == null) return true;
 		if (!(caster instanceof EntityLivingBase)) return true;
 		if (facing != null && !world.isAirBlock(new BlockPos(targetPos))) {
-			targetPos = new Vec3d(new BlockPos(targetPos).offset(facing)).addVector(0.5, 0.5, 0.5);
+			targetPos = new Vec3d(new BlockPos(targetPos).offset(facing)).add(0.5, 0.5, 0.5);
 		}
 
 		EntityBackupZombie zombie = new EntityBackupZombie(world, (EntityLivingBase) caster, (int) duration);
@@ -82,7 +82,7 @@ public class ModuleEffectBackup extends ModuleEffect {
 		if (position == null) return;
 
 		ParticleBuilder glitter = new ParticleBuilder(1);
-		glitter.setAlphaFunction(new InterpFadeInOut(0.0f, 0.1f));
+		glitter.setAlphaFunction(new InterpFloatInOut(0.0f, 0.1f));
 		glitter.setColorFunction(new InterpColorHSV(getPrimaryColor(), getSecondaryColor()));
 		glitter.enableMotionCalculation();
 		glitter.setScaleFunction(new InterpScale(1, 0));

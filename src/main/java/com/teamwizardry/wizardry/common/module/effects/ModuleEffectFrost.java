@@ -3,7 +3,7 @@ package com.teamwizardry.wizardry.common.module.effects;
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
@@ -66,7 +66,7 @@ public class ModuleEffectFrost extends ModuleEffect {
 		double range = spellRing.getAttributeValue(AttributeRegistry.AREA, spell) / 2;
 		double time = spellRing.getAttributeValue(AttributeRegistry.DURATION, spell) * 10;
 
-		if (!spellRing.taxCaster(spell)) return false;
+		if (!spellRing.taxCaster(spell, true)) return false;
 
 		if (targetEntity != null) {
 			spell.world.playSound(null, targetEntity.getPosition(), ModSounds.FROST_FORM, SoundCategory.NEUTRAL, 1, 1);
@@ -114,7 +114,7 @@ public class ModuleEffectFrost extends ModuleEffect {
 		if (position == null) return;
 
 		ParticleBuilder glitter = new ParticleBuilder(1);
-		glitter.setAlphaFunction(new InterpFadeInOut(0.0f, 0.1f));
+		glitter.setAlphaFunction(new InterpFloatInOut(0.0f, 0.1f));
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
 		glitter.enableMotionCalculation();
 		glitter.setScaleFunction(new InterpScale(1, 0));

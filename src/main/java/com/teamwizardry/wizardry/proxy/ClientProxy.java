@@ -5,9 +5,8 @@ import com.teamwizardry.librarianlib.features.utilities.client.CustomBlockMapSpr
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.client.core.CapeHandler;
-import com.teamwizardry.wizardry.client.render.BloodRenderLayer;
+import com.teamwizardry.wizardry.client.core.renderer.PearlRadialUIRenderer;
 import com.teamwizardry.wizardry.client.render.item.RenderHaloEntity;
-import com.teamwizardry.wizardry.client.render.item.RenderHaloPlayer;
 import com.teamwizardry.wizardry.common.core.version.VersionChecker;
 import com.teamwizardry.wizardry.init.ModEntities;
 import com.teamwizardry.wizardry.init.ModItems;
@@ -51,6 +50,8 @@ public class ClientProxy extends CommonProxy {
 		if (ConfigValues.versionCheckerEnabled)
 			MinecraftForge.EVENT_BUS.register(VersionChecker.INSTANCE);
 
+		PearlRadialUIRenderer.INSTANCE.getClass();
+
 		ModEntities.initModels();
 
 		CustomBlockMapSprites.INSTANCE.register(new ResourceLocation(Wizardry.MODID, "blocks/mana_crystal_ring"));
@@ -60,7 +61,6 @@ public class ClientProxy extends CommonProxy {
 		CustomBlockMapSprites.INSTANCE.register(new ResourceLocation(Wizardry.MODID, "blocks/mana_orb"));
 		CustomBlockMapSprites.INSTANCE.register(new ResourceLocation(Wizardry.MODID, "blocks/mana_pearl_cube"));
 		CustomBlockMapSprites.INSTANCE.register(new ResourceLocation(Wizardry.MODID, "blocks/nacre_pearl_cube"));
-
 
 		// Load and bake the 2D models
 		ModelBakery.registerItemVariants(ModItems.BOOK, new ModelResourceLocation("wizardry:book", "inventory"));
@@ -74,16 +74,11 @@ public class ClientProxy extends CommonProxy {
 
 		MinecraftForge.EVENT_BUS.register(CapeHandler.instance());
 
-		Minecraft.getMinecraft().getRenderManager().getSkinMap().values().forEach(render ->
-				render.addLayer(new BloodRenderLayer(render))
-		);
-
 		Map<String, RenderPlayer> skinMap = Minecraft.getMinecraft().getRenderManager().getSkinMap();
-		RenderPlayer render = skinMap.get("default");
-		render.addLayer(new RenderHaloPlayer(render.getMainModel().bipedHead));
-
-		render = skinMap.get("slim");
-		render.addLayer(new RenderHaloPlayer(render.getMainModel().bipedHead));
+		for (RenderPlayer render : skinMap.values()) {
+			//	render.addLayer(new BloodRenderLayer(render));
+			render.addLayer(new RenderHaloEntity(render.getMainModel().bipedHead));
+		}
 
 		Map<Class<? extends Entity>, Render<? extends Entity>> map = Minecraft.getMinecraft().getRenderManager().entityRenderMap;
 		for (ResourceLocation entity : EntityList.getEntityNameList()) {

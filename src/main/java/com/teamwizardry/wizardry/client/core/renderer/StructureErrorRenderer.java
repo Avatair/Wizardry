@@ -22,8 +22,7 @@ import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 /**
  * Created by Demoniaque.
  */
-@SideOnly(Side.CLIENT)
-@Mod.EventBusSubscriber(modid = Wizardry.MODID)
+@Mod.EventBusSubscriber(modid = Wizardry.MODID, value = Side.CLIENT)
 public class StructureErrorRenderer {
 
 	private static final Sprite particle = new Sprite(new ResourceLocation(Wizardry.MODID, "textures/particles/sparkle_blurred.png"));
@@ -38,7 +37,7 @@ public class StructureErrorRenderer {
 				return;
 		}
 
-		errors.add(new ParticleError(new Vec3d(pos).addVector(0.5, 0.5, 0.5), 100));
+		errors.add(new ParticleError(new Vec3d(pos).add(0.5, 0.5, 0.5), 100));
 	}
 
 	public static void addError(Vec3d pos) {

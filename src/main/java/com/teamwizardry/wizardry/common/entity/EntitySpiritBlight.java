@@ -1,9 +1,9 @@
 package com.teamwizardry.wizardry.common.entity;
 
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.features.utilities.client.ClientRunnable;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
@@ -92,7 +92,7 @@ public class EntitySpiritBlight extends EntityMob {
 		//	@Override
 		//	@SideOnly(Side.CLIENT)
 		//	public void runIfClient() {
-		//		LibParticles.AIR_THROTTLE(world, getPositionVector().addVector(0, getEyeHeight(), 0), normal, Color.WHITE, Color.YELLOW, RandUtil.nextDouble(0.2, 1.0));
+		//		LibParticles.AIR_THROTTLE(world, getPositionVector().add(0, getEyeHeight(), 0), normal, Color.WHITE, Color.YELLOW, RandUtil.nextDouble(0.2, 1.0));
 		//	}
 		//});
 	}
@@ -144,7 +144,7 @@ public class EntitySpiritBlight extends EntityMob {
 			public void runIfClient() {
 				ParticleBuilder glitter = new ParticleBuilder(30);
 				glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setAlphaFunction(new InterpFloatInOut(1f, 1f));
 				glitter.setColor(new Color(0xf404d4));
 
 				RandUtilSeed seed = new RandUtilSeed(getDataManager().get(DATA_SHIFT_SEED));
@@ -152,7 +152,7 @@ public class EntitySpiritBlight extends EntityMob {
 				Vec3d offset = new Vec3d(seed.nextDouble(-3, 3), seed.nextDouble(-3, 3), seed.nextDouble(-3, 3));
 
 				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(
-						getPositionVector().addVector(0, getEyeHeight(), 0).add(offset)), 10, 0, (i, build) -> {
+						getPositionVector().add(0, getEyeHeight(), 0).add(offset)), 10, 0, (i, build) -> {
 					double radius = 0.1;
 					double theta = 2.0f * (float) Math.PI * RandUtil.nextFloat();
 					double r = radius * RandUtil.nextFloat();
@@ -210,10 +210,10 @@ public class EntitySpiritBlight extends EntityMob {
 				ParticleBuilder glitter = new ParticleBuilder(RandUtil.nextInt(100, 150));
 				glitter.setColor(Color.WHITE);
 				glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-				glitter.setAlphaFunction(new InterpFadeInOut(0.1f, 0.1f));
+				glitter.setAlphaFunction(new InterpFloatInOut(0.1f, 0.1f));
 				glitter.setAcceleration(Vec3d.ZERO);
 
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector().addVector(0, height, 0)), 1000, 0, (i, build) -> {
+				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(getPositionVector().add(0, height, 0)), 1000, 0, (i, build) -> {
 					double radius = 0.2;
 					build.setDeceleration(new Vec3d(RandUtil.nextDouble(0.8, 0.95), RandUtil.nextDouble(0.8, 0.95), RandUtil.nextDouble(0.8, 0.95)));
 					build.addMotion(new Vec3d(RandUtil.nextDouble(-radius, radius), RandUtil.nextDouble(-radius, radius), RandUtil.nextDouble(-radius, radius)));

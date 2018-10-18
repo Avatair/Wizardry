@@ -1,21 +1,47 @@
-0.9
-Warning: Custom changes to recipes/modules will be reverted this update.
-Worktable overhaul (visual aids, animations, and detailed tooltips, info, etc)
-New spell visualization. Spells that target blocks now show you where and how before casting them
-Spell recipe scrolling with the 3d book in your hand
-Update ru_ru and uk_ua langs
-Redid unicorns. Now have a rainbow trail that's not blocks
-Cheaper syringes, now use mana orbs instead of buckets or you can directly right click liquid mana in the world with a syringe
-Tons of rebalanced numbers
-Made manifest file to automagically update files for seamless updates
-Redid lightning, should cast smoothly now with all shapes
-Phase spell now works on blocks (like thaumcraft blackhole wands but cooler)
-Lingering/Delayed spells now save on world close
-Vanish now hides player hand in first person
-New particles for a lot of things especially light and self spells
-Spell projectiles cast particles properly now
-Fix crash caused by lightning occasionally
-Added some new sounds
-Leap effect behavior changed
-Zoom effect ridiculous cooldown bug fixed
-Fix fairy dust jump pads (They were uh... bad...)
+0.9.8
+Added Unicorn Dagger
+Fix Arc not using any mana or burnout
+Fix Lightning's Arc and Projectile sub-spells not using any mana or burnout
+Added Pearl Belt to let you swap out a staff's pearl on the fly
+Added Wisdom Wood Sapling
+Fixed getting water bottles when using bottles on mana and nacre
+Worktable now requires functional spell links to save
+Worktable now saves its current state
+Added Load and Clear buttons to the worktable
+Added some recipes to the book
+
+0.9.7
+Hotfix: Fix syringes crashing
+Hotfix: Fix pearl holders dropping their inventories on relog
+Fixed incompatibility with BetterFPS's Riven Half algorithm. It prevented modifiers from opening in the worktable
+Fixed break spell instantly breaking armor when the spell is held and you look at the entity
+Redid structure handling, now renders things properly (like mana battery)
+Improved structure rendering
+Fixed crafting plate piling up animation loops non-stop even after breaking the tile
+Fixed crafting plate not syncing all items to client. Not all items hovered around
+Fixed crash when BetterFoliage is present
+Added pearl unmounting recipe from pearl mounted staffs
+
+0.9.6
+Fix in game changelog formatting versions incorrectly
+Fixed syringe + mana orb recipe
+Fixed GL leak makings hands transparent (thanks paul)
+
+0.9.5
+Fixed a crash with books with no recipes
+
+0.9.4
+Fixed CME issue with Mana Network code
+Optimized Mana Networking code in general
+Optimized pearl holders as they were causing lag
+Fixed cape present while sleeping
+Mana Batteries now correctly require liquid mana in their pools
+Crafting Plate rendering and syncing issues fixed
+Potentially fixed death when jumping out of Underworld
+Name light block + remove null break particles
+Spells now have fail sounds
+Fix Spirit Wight particles not rendering
+Spirit Wights no longer attack dead things
+Real halos no longer lag behind players
+Increased drop chance of unicorn horns to 1/8th of a chance
+... (changelog is too massive)

@@ -1,7 +1,8 @@
 package com.teamwizardry.wizardry.init;
 
-import com.teamwizardry.wizardry.Wizardry;
-import com.teamwizardry.wizardry.api.block.CachedStructure;
+import com.teamwizardry.wizardry.api.block.IStructure;
+import com.teamwizardry.wizardry.api.block.WizardryStructureRenderCompanion;
+import net.minecraft.block.Block;
 import net.minecraft.util.ResourceLocation;
 
 import java.util.HashMap;
@@ -10,16 +11,25 @@ public class ModStructures {
 
 	public static ModStructures INSTANCE = new ModStructures();
 
-	public HashMap<String, CachedStructure> structures = new HashMap<>();
+	private HashMap<ResourceLocation, WizardryStructureRenderCompanion> structures = new HashMap<>();
 
-	public ModStructures() {
-		init();
+	private ModStructures() {
 	}
 
-	public void init() {
-		structures.clear();
-		structures.put("crafting_altar", new CachedStructure(new ResourceLocation(Wizardry.MODID, "crafting_altar"), null).setBlock(ModBlocks.CRAFTING_PLATE));
-		structures.put("mana_battery", new CachedStructure(new ResourceLocation(Wizardry.MODID, "mana_battery"), null).setBlock(ModBlocks.MANA_BATTERY));
+	public WizardryStructureRenderCompanion getStructure(Block block) {
+		if (!(block instanceof IStructure) || block.getRegistryName() == null) return null;
+
+		structures.putIfAbsent(block.getRegistryName(), new WizardryStructureRenderCompanion(block.getRegistryName()));
+
+		return structures.get(block.getRegistryName());
+	}
+
+	public WizardryStructureRenderCompanion getStructure(String blockName) {
+		ResourceLocation loc = new ResourceLocation(blockName);
+
+		structures.putIfAbsent(loc, new WizardryStructureRenderCompanion(loc));
+
+		return structures.get(loc);
 	}
 }
 

@@ -1,18 +1,7 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
-import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
-import static com.teamwizardry.wizardry.common.module.shapes.ModuleShapeBeam.BEAM_CAST;
-import static com.teamwizardry.wizardry.common.module.shapes.ModuleShapeBeam.BEAM_OFFSET;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-
-import javax.annotation.Nonnull;
-
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.LightningGenerator;
-import com.teamwizardry.wizardry.api.spell.IOverrideCooldown;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
@@ -31,11 +20,9 @@ import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseP
 import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import com.teamwizardry.wizardry.common.network.PacketRenderLightningBolt;
 import com.teamwizardry.wizardry.init.ModSounds;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -46,11 +33,17 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.HashSet;
+
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
+
 /**
  * Created by Demoniaque.
  */
 @RegisterModule
-public class ModuleEffectLightning extends ModuleEffect implements IOverrideCooldown {
+public class ModuleEffectLightning extends ModuleEffect {
 
 	public ModuleEffectLightning() {
 		registerRunOverride("shape_self", getSelfOverride());
@@ -60,12 +53,10 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 		registerRunOverride("shape_beam", getBeamOverride());
 		registerRunOverride("shape_zone", getZoneOverride());
 
-		registerRenderOverride("shape_self", (data, spellRing, childRing) -> {});
 		registerRenderOverride("shape_touch", (data, spellRing, childRing) -> {});
 		registerRenderOverride("shape_projectile", (data, spellRing, childRing) -> {});
 		registerRenderOverride("shape_cone", (data, spellRing, childRing) -> {});
 		registerRenderOverride("shape_beam", (data, spellRing, childRing) -> {});
-		registerRenderOverride("shape_zone", (data, spellRing, childRing) -> {});
 	}
 
 	@Nonnull
@@ -89,17 +80,16 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			Vec3d origin = data.getOrigin();
 			if (origin == null) return;
 			
+			if (!childRing.taxCaster(data, true)) return;
+			
 			double range = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double potency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2;
 			double duration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
-			
-			if (!childRing.taxCaster(data)) return;
-			
+
 			RandUtilSeed rand = new RandUtilSeed(RandUtil.nextLong(100, 100000));
 			float pitch = rand.nextFloat(-45, 45);
 			float yaw = rand.nextFloat(0, 360);
 			doLightning(rand.nextLong(100, 100000), world, caster, origin, Vec3d.fromPitchYaw(pitch, yaw).normalize().scale(range).add(origin), range, potency, duration);
-			LightningTracker.INSTANCE.addEntity(origin, caster, caster, potency, duration);
 		};
 	}
 	
@@ -110,7 +100,8 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			Entity caster = data.getCaster();
 			Vec3d origin = data.getOriginWithFallback();
 			if (look == null || caster == null || origin == null) return;
-			if (!childRing.taxCaster(data)) return;
+			
+			if (!childRing.taxCaster(data, true)) return;
 			
 			double range = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double potency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data);
@@ -118,7 +109,10 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			
 			RayTraceResult trace = new RayTrace(world, look, origin,
 					caster instanceof EntityLivingBase ? ((EntityLivingBase) caster).getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() : 5)
-					.setSkipEntity(caster).setReturnLastUncollidableBlock(true).setIgnoreBlocksWithoutBoundingBoxes(true).trace();
+					.setEntityFilter(input -> input != caster)
+					.setReturnLastUncollidableBlock(true)
+					.setIgnoreBlocksWithoutBoundingBoxes(true)
+					.trace();
 			
 			doLightning(RandUtil.nextLong(100, 100000), world, caster, origin, trace.hitVec, range, potency, duration);
 		};
@@ -133,6 +127,8 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			Vec3d origin = data.getOriginWithFallback();
 			if (origin == null) return;
 
+			if (!childRing.taxCaster(data, true)) return;
+			
 			double dist = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double speed = spellRing.getAttributeValue(AttributeRegistry.SPEED, data);
 
@@ -153,15 +149,18 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			Vec3d origin = data.getOriginHand();
 
 			if (origin == null) return;
-
+			
+			if (!childRing.taxCaster(data, true)) return;
+			
 			double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double lightningPotency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2.0;
 			double lightningDuration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
 			double beamRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
-			
-			if (!childRing.taxCaster(data)) return;
-				
-			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, beamRange).setSkipBlocks(true).setSkipEntities(true).trace();
+
+			RayTraceResult traceResult = new RayTrace(world, PosUtils.vecFromRotations(pitch, yaw), origin, beamRange)
+					.setSkipBlocks(true)
+					.setSkipEntities(true)
+					.trace();
 
 			doLightning(RandUtil.nextLong(100, 100000), world, caster, origin, traceResult.hitVec, lightningRange, lightningPotency, lightningDuration);
 		};
@@ -176,6 +175,8 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			Entity caster = data.getCaster();
 			
 			if (origin == null) return;
+			
+			if (!childRing.taxCaster(data, true)) return;
 
 			double coneRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
@@ -187,8 +188,8 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			float angle = (float) coneRange * 2;
 			float newPitch = pitch + rand.nextFloat(-angle, angle);
 			float newYaw = yaw + rand.nextFloat(-angle, angle);
-			
-			Vec3d to = Vec3d.fromPitchYaw(newPitch, newYaw).normalize().scale(lightningRange).add(origin);
+
+			Vec3d to = Vec3d.fromPitchYaw(newPitch, newYaw).normalize().scale(coneRange).add(origin);
 			doLightning(rand.nextLong(100, 100000), world, caster, origin, to, lightningRange, lightningPotency, lightningDuration);
 		};
 	}
@@ -201,6 +202,8 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 
 			if (targetPos == null) return;
 
+			if (!childRing.taxCaster(data, true)) return;
+			
 			double lightningRange = childRing.getAttributeValue(AttributeRegistry.RANGE, data);
 			double lightningPotency = childRing.getAttributeValue(AttributeRegistry.POTENCY, data) / 2.0;
 			double lightningDuration = childRing.getAttributeValue(AttributeRegistry.DURATION, data);
@@ -208,9 +211,7 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 			double zoneRange = spellRing.getAttributeValue(AttributeRegistry.RANGE, data);
 
 			Vec3d min = targetPos.subtract(zoneAoE/2, zoneRange/2, zoneAoE/2);
-			Vec3d max = targetPos.addVector(zoneAoE/2, zoneRange/2, zoneAoE/2);
-			
-			if (!childRing.taxCaster(data)) return;
+			Vec3d max = targetPos.add(zoneAoE / 2, zoneRange / 2, zoneAoE / 2);
 
 			RandUtilSeed rand = new RandUtilSeed(RandUtil.nextLong(100, 100000));
 			
@@ -235,11 +236,6 @@ public class ModuleEffectLightning extends ModuleEffect implements IOverrideCool
 	@SideOnly(Side.CLIENT)
 	public void renderSpell(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		// NO-OP, should always be overriding a shape
-	}
-	
-	@Override
-	public int getNewCooldown(@Nonnull SpellData spell, SpellRing ring) {
-		return 0;
 	}
 	
 	public static void doLightning(long seed, World world, Entity caster, Vec3d from, Vec3d to, double offshootRange, double potency, double duration)

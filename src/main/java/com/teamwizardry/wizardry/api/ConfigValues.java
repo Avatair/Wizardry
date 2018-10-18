@@ -32,7 +32,7 @@ public class ConfigValues {
 	public static int networkLinkDistance = 32;
 
 	@ConfigProperty(category = "items", comment = "The buffer size a crude halo will give to a player.")
-	public static double crudeHaloBufferSize = 500;
+	public static double crudeHaloBufferSize = 1000;
 
 	@ConfigProperty(category = "items", comment = "The buffer size a real halo will give to a player.")
 	public static double realHaloBufferSize = 5000;
@@ -42,6 +42,10 @@ public class ConfigValues {
 
 	@ConfigProperty(category = "items", comment = "Halo mana regeneration and burnout degeneration per tick")
 	public static double haloGenSpeed = 0.001;
+
+	@ConfigIntRange(min = 1, max = 20)
+	@ConfigProperty(category = "items", comment = "Pearl belt inventory size")
+	public static int pearlBeltInvSize = 8;
 
 	@ConfigDoubleRange(min = 1, max = 2)
 	@ConfigProperty(category = "spells", comment = "The multiplier a spellData gets for a perfect or ancient quality outputPearl. [1,2]\n" +
@@ -58,5 +62,5 @@ public class ConfigValues {
 	
 	@ConfigIntRange(min = 1, max = Integer.MAX_VALUE)
 	@ConfigProperty(category = "spells", comment = "Maximum number of ticks between Beam activations. Minimum of 1.")
-	public static int beamTimer = 20;
+	public static int beamTimer = 10;
 }

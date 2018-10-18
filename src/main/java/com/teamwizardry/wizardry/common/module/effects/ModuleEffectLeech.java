@@ -3,7 +3,7 @@ package com.teamwizardry.wizardry.common.module.effects;
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.capability.mana.CapManager;
@@ -58,18 +58,20 @@ public class ModuleEffectLeech extends ModuleEffect {
 
 		double potency = spellRing.getAttributeValue(AttributeRegistry.POTENCY, spell) / 2;
 
-		if (!spellRing.taxCaster(spell)) return false;
+		if (!spellRing.taxCaster(spell, true)) return false;
 
 		if (targetEntity instanceof EntityLivingBase) {
+			int invTime = targetEntity.hurtResistantTime;
+			targetEntity.hurtResistantTime = 0;
 			if (targetEntity instanceof EntityPlayer) {
 
-				double targetMana = new CapManager(targetEntity).getMana();
+				double targetMana = CapManager.getMana(targetEntity);
 
 				targetEntity.attackEntityFrom(DamageSource.MAGIC, (float) potency);
 				if (targetEntity.isDead) {
 					targetMana /= 2;
 					targetMana = MathHelper.clamp(targetMana, targetMana, spellRing.getManaDrain() * 2);
-					new CapManager(caster).addMana(targetMana);
+					CapManager.forObject(caster).addMana(targetMana).close();
 				}
 
 			} else if (targetEntity instanceof EntityWitch) {
@@ -78,7 +80,7 @@ public class ModuleEffectLeech extends ModuleEffect {
 
 				targetEntity.attackEntityFrom(DamageSource.MAGIC, (float) potency);
 				if (targetEntity.isDead) {
-					new CapManager(caster).addMana(targetMana);
+					CapManager.forObject(caster).addMana(targetMana).close();
 				}
 
 			} else {
@@ -90,6 +92,7 @@ public class ModuleEffectLeech extends ModuleEffect {
 					targetEntity.attackEntityFrom(DamageSource.MAGIC, (float) potency);
 
 			}
+			targetEntity.hurtResistantTime = invTime;
 		}
 
 		Vec3d target = spell.getTargetWithFallback();
@@ -117,7 +120,7 @@ public class ModuleEffectLeech extends ModuleEffect {
 			builder.setLifetime(RandUtil.nextInt(30, 60));
 			builder.addMotion(new Vec3d(RandUtil.nextDouble(-0.05, 0.05), RandUtil.nextDouble(0.01, 0.02), RandUtil.nextDouble(-0.05, 0.05)));
 			builder.setScale((float) RandUtil.nextDouble(0.3, 0.5));
-			builder.setAlphaFunction(new InterpFadeInOut(0.0f, 0.3f));
+			builder.setAlphaFunction(new InterpFloatInOut(0.0f, 0.3f));
 			builder.setColor(RandUtil.nextBoolean() ? spellRing.getPrimaryColor() : spellRing.getSecondaryColor());
 		});
 	}

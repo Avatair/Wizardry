@@ -58,7 +58,7 @@ public class PotionPhase extends PotionBase {
 		EntityLivingBase base = (EntityLivingBase) event.entity;
 		if (!base.isPotionActive(ModPotions.PHASE)) return;
 
-		event.override = true;
+		event.setCanceled(true); // TODO: 10/6/18 fix your shit demoniaque
 		//event.entity.noClip = true;
 		event.entity.fallDistance = 0;
 		event.entity.isAirBorne = true;
@@ -270,7 +270,7 @@ public class PotionPhase extends PotionBase {
 							IBlockState state = entity.world.getBlockState(blockpos$pooledmutableblockpos2);
 
 							try {
-								state.getBlock().onEntityCollidedWithBlock(entity.world, blockpos$pooledmutableblockpos2, state, entity);
+								state.getBlock().onEntityCollision(entity.world, blockpos$pooledmutableblockpos2, state, entity);
 							} catch (Throwable throwable) {
 								CrashReport crashreport = CrashReport.makeCrashReport(throwable, "Colliding entity with block");
 								CrashReportCategory crashreportcategory = crashreport.makeCategory("Block being collided with");
