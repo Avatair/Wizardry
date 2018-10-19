@@ -1,6 +1,10 @@
 package com.teamwizardry.wizardry.api.spell.module;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.teamwizardry.wizardry.api.spell.SpellData;
+import com.teamwizardry.wizardry.api.spell.SpellRing;
 
 public interface IModule {
 
@@ -14,7 +18,7 @@ public interface IModule {
 		return null;
 	}
 	
-	default boolean ignoreResultForRendering() {
+	default boolean ignoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return false;
 	}
 

@@ -124,7 +124,8 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 
 		if (data.getCaster() != null)
 			processCastTimeModifiers(data.getCaster(), data);
-		boolean success = module.castSpell(data, this) && !module.ignoreResultForRendering();
+		boolean noChildrenInvoke = module.ignoreResultForRendering(data, this);
+		boolean success = module.castSpell(data, this) && !noChildrenInvoke;
 		if (success) {
 
 			if (module != null) {
@@ -132,7 +133,7 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 			}
 
 			if (getChildRing() != null) return getChildRing().runSpellRing(data);
-		} else if (module.ignoreResultForRendering()) {
+		} else if (noChildrenInvoke) {
 			if (module != null) {
 				module.sendRenderPacket(data, this);
 			}

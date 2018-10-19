@@ -522,8 +522,8 @@ public abstract class ModuleInstance {
 		this.attributeRanges.put(attribute, range);
 	}
 	
-	public final boolean ignoreResultForRendering() {
-		return moduleClass.ignoreResultForRendering();
+	public final boolean ignoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+		return moduleClass.ignoreResultForRendering(spell, spellRing);
 	}
 	
 	/**
