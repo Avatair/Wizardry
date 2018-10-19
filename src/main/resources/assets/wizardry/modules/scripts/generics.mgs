@@ -1,0 +1,9 @@
+///////
+// Initial generic
+///////
+
+// Entry points:
+
+	proc initMain {
+		// TODO: do initialization
+	}

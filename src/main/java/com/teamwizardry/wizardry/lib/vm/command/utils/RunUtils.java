@@ -8,14 +8,22 @@ import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequence;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequenceBuilder;
 
-public class TestUtils {
-	public static void runProgram(ICommandOperable initialStateTemplate, String entryPoint, ProgramSequence ... config) {
+public class RunUtils {
+	private RunUtils() {}
+	
+	public static ICommandGenerator compileProgram(String entryPoint, ProgramSequence ... config) {
 		ProgramSequenceBuilder builder = new ProgramSequenceBuilder();
 		for( ProgramSequence seq : config ) {
 			builder.importProgram(seq);
 		}
 		builder.beginMainFrame().addFrameCall(entryPoint).endFrame();
-		runProgram(initialStateTemplate, builder.build());
+		
+		return builder.build();
+	}
+	
+	public static void runProgram(ICommandOperable initialStateTemplate, String entryPoint, ProgramSequence ... config) {
+		ICommandGenerator program = compileProgram(entryPoint, config);
+		runProgram(initialStateTemplate, program);
 	}
 	
 	public static void runProgram(ICommandOperable initialStateTemplate, ICommandGenerator program) {
@@ -24,17 +32,16 @@ public class TestUtils {
 		CommandInstance[] cmds = program.getNextInstances(null);
 		for( CommandInstance cmd : cmds ) 
 			actProc.startAction(new CommandDispatcherAction(initialStateTemplate.makeCopy(cmds.length > 1), cmd, program, 0) );
-		processorLoop(actProc, true);
+		processorLoop(actProc);
 	}
 	
-	public static void processorLoop(ActionProcessor actProc, boolean bPrint) {
+	public static void processorLoop(ActionProcessor actProc) {
 		boolean bTicked = false;
 		int tickCounter = 1;
 		do {
-			if( bPrint )
-				DebugUtils.printDebug("TICK", "TICK " + tickCounter + ":");
+			DebugUtils.printDebug("TICK", "TICK " + tickCounter + ":");
 			bTicked = actProc.updateTick();
-			if( !bTicked && bPrint )
+			if( !bTicked )
 				DebugUtils.printDebug("TICK", "\tFINAL!");
 			tickCounter ++;
 		}

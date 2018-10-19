@@ -16,6 +16,7 @@ import com.teamwizardry.wizardry.api.spell.module.IModuleModifier;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
 import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseAOE;
@@ -43,7 +44,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
  * Created by Demoniaque.
  */
 @RegisterModule
-public class ModuleShapeZone implements IModuleShape, ILingeringModule {
+public class ModuleShapeZone extends AbstractModuleShapeVM implements IModuleShape, ILingeringModule {
 
 	public static final String ZONE_OFFSET = "zone offset";
 	public static final String ZONE_CAST = "zone cast";
@@ -60,7 +61,7 @@ public class ModuleShapeZone implements IModuleShape, ILingeringModule {
 	}
 
 	@Override
-	public boolean ignoreResultForRendering() {
+	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 

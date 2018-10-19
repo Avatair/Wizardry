@@ -10,6 +10,8 @@ import com.teamwizardry.wizardry.api.spell.module.IModuleModifier;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
+import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.client.fx.LibParticles;
@@ -41,7 +43,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
  */
 @RegisterModule
 @Mod.EventBusSubscriber(modid = Wizardry.MODID)
-public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
+public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleShape, IContinuousModule {
 
 	public static final String BEAM_OFFSET = "beam offset";
 	public static final String BEAM_CAST = "beam cast";
@@ -60,7 +62,7 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	}
 
 	@Override
-	public boolean ignoreResultForRendering() {
+	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 

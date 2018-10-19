@@ -40,7 +40,12 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 		return values.get(key);
 	}
 	
-	public String getValue_String(String key) {
+	@Override
+	public boolean hasData(String key) {
+		return values.containsKey(key);
+	}
+	
+	public final String getValue_String(String key) {
 		Object obj = getValue(key);
 		if( obj == null )
 			return "*null*";
@@ -62,11 +67,6 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 		if( obj == null )
 			throw new IllegalStateException("A null object was existing in stack.");
 		return obj;
-	}
-	
-	@Override
-	public boolean hasData(String key) {
-		return values.containsKey(key);
 	}
 	
 	@Override

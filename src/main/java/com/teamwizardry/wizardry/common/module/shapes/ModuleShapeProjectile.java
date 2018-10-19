@@ -7,6 +7,8 @@ import com.teamwizardry.wizardry.api.spell.module.IModuleModifier;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
+import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.common.entity.projectile.EntitySpellProjectile;
@@ -31,7 +33,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
  * Created by Demoniaque.
  */
 @RegisterModule
-public class ModuleShapeProjectile implements IModuleShape {
+public class ModuleShapeProjectile extends AbstractModuleShapeVM implements IModuleShape {
 
 	@Nonnull
 	@Override
@@ -45,7 +47,7 @@ public class ModuleShapeProjectile implements IModuleShape {
 	}
 
 	@Override
-	public boolean ignoreResultForRendering() {
+	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 
