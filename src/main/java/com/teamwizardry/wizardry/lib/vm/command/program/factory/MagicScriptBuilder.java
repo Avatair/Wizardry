@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.teamwizardry.wizardry.lib.vm.command.program.UnsatisfiedLinkException;
 import com.teamwizardry.wizardry.lib.vm.command.type.CallNativeCommand;
 import com.teamwizardry.wizardry.lib.vm.command.type.EchoCommand;
 import com.teamwizardry.wizardry.lib.vm.command.type.LoadCommand;
@@ -38,87 +39,96 @@ public class MagicScriptBuilder {
 	}
 	
 	public ProgramSequence build() throws ScriptParserException {
-		ProgramSequence newPrg = new ProgramSequence();
-		
-		StringTokenizer tokenizer = new StringTokenizer(input);
-		while(tokenizer.hasNextToken()) {
-			Token operation = tokenizer.getNextToken();
+		try {		
+			ProgramSequence newPrg = new ProgramSequence();
 			
-			if( operation.isKeyword("import") ) {
-				parseImport(newPrg, tokenizer);
-			}
-			else if( operation.isKeyword("map") ) {
-				parseMapTo(newPrg, tokenizer);
-			}
-			else if( operation.isKeyword("proc") ) {
-				Token frameName = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+			StringTokenizer tokenizer = new StringTokenizer(input);
+			while(tokenizer.hasNextToken()) {
+				Token operation = tokenizer.getNextToken();
 				
-				// Do some proc init
-				newPrg.beginFrame(frameName.toString());
-				
-				parseProcedure(newPrg, tokenizer);
-				
-				newPrg.addReturn();
-				newPrg.endFrame();
-			}
-			else if( operation.isKeyword("edit") ) {
-				operation = tokenizer.getNextToken();
-				if( operation.isKeyword("proc") ) {
-					// scan first arguments
+				if( operation.isKeyword("import") ) {
+					parseImport(newPrg, tokenizer);
+				}
+				else if( operation.isKeyword("map") ) {
+					parseMapTo(newPrg, tokenizer);
+				}
+				else if( operation.isKeyword("proc") ) {
 					Token frameName = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
-										
-					ProgramSequence targetSequence;
-					String frameNameNode;
-					
-					if( frameName.getCountDomainNodes() > 1 ) {
-						String targetSequenceName = frameName.getSubDomain(0, frameName.getCountDomainNodes() - 1);
-						String targetName = frameName.getDomainNode(frameName.getCountDomainNodes() - 1);
-						
-						targetSequence = dependencies.get(targetSequenceName);
-						if( targetSequence == null )
-							throw new ScriptParserException("Script '" + targetSequenceName + "' is not existing.");
-						
-						frameNameNode = targetName;
-					}
-					else {
-						targetSequence = newPrg;
-						frameNameNode = frameName.getDomainNode(0);
-					}
 					
 					// Do some proc init
-					targetSequence.editFrame(frameNameNode);
+					newPrg.beginFrame(frameName.toString());
 					
-					Token location = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+					parseProcedure(newPrg, tokenizer);
 					
-					if( location.isKeyword("before") ) {
-						Token injectionLabel = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+					newPrg.addReturn();
+					newPrg.endFrame();
+				}
+				else if( operation.isKeyword("edit") ) {
+					operation = tokenizer.getNextToken();
+					if( operation.isKeyword("proc") ) {
+						// scan first arguments
+						Token frameName = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+											
+						ProgramSequence targetSequence;
+						String frameNameNode;
 						
-						// seek to point
-						targetSequence.seekTo(injectionLabel.toString(), 0);
-					}
-					else if( location.isKeyword("at") ) {
-						Token injectionLabel = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
-
-						targetSequence.seekTo(injectionLabel.toString(), 1);
-					}
-					else if( location.isKeyword("end") ) {
-						targetSequence.seekTo(null, 0);
+						if( frameName.getCountDomainNodes() > 1 ) {
+							String targetSequenceName = frameName.getSubDomain(0, frameName.getCountDomainNodes() - 1);
+							String targetName = frameName.getDomainNode(frameName.getCountDomainNodes() - 1);
+							
+							targetSequence = dependencies.get(targetSequenceName);
+							if( targetSequence == null )
+								throw new ScriptParserException("Script '" + targetSequenceName + "' is not existing.");
+							
+							frameNameNode = targetName;
+						}
+						else {
+							targetSequence = newPrg;
+							frameNameNode = frameName.getDomainNode(0);
+						}
+						
+						// Do some proc init
+						try {
+							targetSequence.editFrame(frameNameNode);
+						} catch (UnsatisfiedLinkException e) {
+							throw new ScriptParserException("Edited routine '" + frameNameNode + "' is not existing.", e);
+						}
+						
+						Token location = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+						
+						if( location.isKeyword("before") ) {
+							Token injectionLabel = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+							
+							// seek to point
+							targetSequence.seekTo(injectionLabel.toString(), 0);
+						}
+						else if( location.isKeyword("at") ) {
+							Token injectionLabel = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
+	
+							targetSequence.seekTo(injectionLabel.toString(), 1);
+						}
+						else if( location.isKeyword("end") ) {
+							targetSequence.seekTo(null, 0);
+						}
+						else
+							throw new ScriptParserException("Invalid location '" + location + "': Must be 'at' or 'before', 'end'.");
+						
+						parseProcedure(targetSequence, tokenizer);
+	
+						targetSequence.endFrame();
 					}
 					else
-						throw new ScriptParserException("Invalid location '" + location + "': Must be 'at' or 'before', 'end'.");
-					
-					parseProcedure(targetSequence, tokenizer);
-
-					targetSequence.endFrame();
+						throw new ScriptParserException("Unexpected syntax " + operation);
 				}
-				else
+				else if( !operation.isSign(';') )
 					throw new ScriptParserException("Unexpected syntax " + operation);
 			}
-			else if( !operation.isSign(';') )
-				throw new ScriptParserException("Unexpected syntax " + operation);
-		}
 		
-		return newPrg;
+			return newPrg;
+		}
+		catch(UnsatisfiedLinkException exc) {
+			throw new ScriptParserException("Found an unsatisfied link. See cause.", exc);
+		}
 	}
 	
 	////

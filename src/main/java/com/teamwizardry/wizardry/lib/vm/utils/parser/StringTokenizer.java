@@ -438,7 +438,7 @@ public class StringTokenizer {
 				return Integer.parseInt(reprString);
 			}
 			catch(NumberFormatException exc) {
-				throw new IllegalStateException("String '" + reprString + "' is not parseable as integer.", exc);
+				throw new IllegalStateException("Invalid call to createRepresentationInteger(). String '" + reprString + "' is not parseable as integer.", exc);
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package com.teamwizardry.wizardry.lib.vm.command.program.factory;
 
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
+import com.teamwizardry.wizardry.lib.vm.command.program.UnsatisfiedLinkException;
 
 public interface IProgramSequence {
 
@@ -11,9 +12,9 @@ public interface IProgramSequence {
 //	IScriptedSequence injectCallAtLabel(String frameName, String labelName, String toFrameName);
 	
 	IProgramSequence beginFrame(String frameName);
-	IProgramSequence editFrame(String frameName);
-	IProgramSequence seekTo(String labelName, int offset);
-	IProgramSequence endFrame();
+	IProgramSequence editFrame(String frameName) throws UnsatisfiedLinkException;
+	IProgramSequence seekTo(String labelName, int offset) throws UnsatisfiedLinkException;
+	IProgramSequence endFrame() throws UnsatisfiedLinkException;
 	
 	IProgramSequence addCommand(ICommand cmd);
 	IProgramSequence assignFork(String ... toLabels);

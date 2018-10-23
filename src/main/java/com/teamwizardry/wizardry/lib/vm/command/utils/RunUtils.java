@@ -6,13 +6,14 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandInstance;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequence;
-import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequenceBuilder;
+import com.teamwizardry.wizardry.lib.vm.command.program.UnsatisfiedLinkException;
+import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramBuilder;
 
 public class RunUtils {
 	private RunUtils() {}
 	
-	public static ICommandGenerator compileProgram(String entryPoint, ProgramSequence ... config) {
-		ProgramSequenceBuilder builder = new ProgramSequenceBuilder();
+	public static ICommandGenerator compileProgram(String entryPoint, ProgramSequence ... config) throws UnsatisfiedLinkException {
+		ProgramBuilder builder = new ProgramBuilder();
 		for( ProgramSequence seq : config ) {
 			builder.importProgram(seq);
 		}
@@ -21,7 +22,7 @@ public class RunUtils {
 		return builder.build();
 	}
 	
-	public static void runProgram(ICommandOperable initialStateTemplate, String entryPoint, ProgramSequence ... config) {
+	public static void runProgram(ICommandOperable initialStateTemplate, String entryPoint, ProgramSequence ... config) throws UnsatisfiedLinkException {
 		ICommandGenerator program = compileProgram(entryPoint, config);
 		runProgram(initialStateTemplate, program);
 	}

@@ -24,6 +24,10 @@ public class CommandBuildContext<T> {
 		return new CommandGenTargetBuildResult(commandGenerator);
 	}
 	
+	public CommandBuildResult make(Exception exc) {
+		return CommandBuildResult.makeExceptionResult(exc);
+	}
+	
 	public T getContext() {
 		return context;
 	}

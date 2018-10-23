@@ -45,13 +45,6 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 		return values.containsKey(key);
 	}
 	
-	public final String getValue_String(String key) {
-		Object obj = getValue(key);
-		if( obj == null )
-			return "*null*";
-		return obj.toString();
-	}
-	
 	@Override
 	public void pushData(Object obj) {
 		if( obj == null )

@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
+import com.teamwizardry.wizardry.lib.vm.command.program.UnsatisfiedLinkException;
 import com.teamwizardry.wizardry.lib.vm.command.type.NullCommand;
 
 public class ProgramSequence implements IProgramSequence {
@@ -39,12 +40,12 @@ public class ProgramSequence implements IProgramSequence {
 	}
 	
 	@Override
-	public ProgramSequence editFrame(String frameName) {
+	public ProgramSequence editFrame(String frameName) throws UnsatisfiedLinkException {
 		if( curFrame != null )
-			throw new IllegalStateException("A frame is still open.");
+			throw new ProgramSequenceException("A frame is still open.");
 		Frame frame = frames.get(frameName);	// NOTE: not using getFrame() ! its injection at local frames.
 		if( frame == null )
-			throw new IllegalArgumentException("Frame " + frameName + " is not existing.");
+			throw new UnsatisfiedLinkException("Frame " + frameName + " is not existing.");
 		
 		curFrame = frame;
 		atNextIndex = frame.getEntries().size();
@@ -54,20 +55,20 @@ public class ProgramSequence implements IProgramSequence {
 	}
 	
 	@Override
-	public ProgramSequence seekTo(String labelName, int offset) {
+	public ProgramSequence seekTo(String labelName, int offset) throws UnsatisfiedLinkException {
 		checkForOpenFrame();
 		int nextIndex;
 		if( labelName != null ) {
 			LabelFrameEntry label = curFrame.getLabelEntryByName(labelName);
 			if( label == null )
-				throw new IllegalStateException("No label " + labelName + " exists at frame " + curFrame.getFrameName());
+				throw new UnsatisfiedLinkException("No label " + labelName + " exists at frame " + curFrame.getFrameName());
 			nextIndex = label.getCodePosition() + offset;
 		}
 		else {
 			nextIndex = curFrame.getEntries().size() + offset;
 		}
 		if( nextIndex < 0 || nextIndex > curFrame.getEntries().size() )
-			throw new IllegalArgumentException("bad offset " + offset + " at label " + labelName + " resulting in " + nextIndex + " out of bounds between [0, " + curFrame.getEntries().size() + "]." );
+			throw new ProgramSequenceException("bad offset " + offset + " at label " + labelName + " resulting in " + nextIndex + " out of bounds between [0, " + curFrame.getEntries().size() + "]." );
 		atNextIndex = nextIndex;
 		
 		return this;
@@ -77,9 +78,9 @@ public class ProgramSequence implements IProgramSequence {
 		if( frameName == null || frameName.isEmpty() )
 			throw new IllegalArgumentException("A frame must have a name");
 		if( frames.containsKey(frameName) )
-			throw new IllegalArgumentException("Frame " + frameName + " already exists.");
+			throw new ProgramSequenceException("Frame " + frameName + " already exists.");
 		if( curFrame != null )
-			throw new IllegalStateException("A frame is still open.");
+			throw new ProgramSequenceException("A frame is still open.");
 
 		curFrame = new Frame(frameName);
 		atNextIndex = 0;
@@ -94,7 +95,7 @@ public class ProgramSequence implements IProgramSequence {
 		return this;
 	}
 	
-	Frame endFrameSpecial(boolean isOpenEnded, boolean isRegistered) {
+	Frame endFrameSpecial(boolean isOpenEnded, boolean isRegistered) throws UnsatisfiedLinkException {
 		checkForOpenFrame();
 
 		if( isModeCreation ) {
@@ -103,7 +104,31 @@ public class ProgramSequence implements IProgramSequence {
 				addStop(true);
 		}
 		
-		finalizeFrame(curFrame);
+		try {
+			finalizeFrame(curFrame);
+		} catch (Exception e) {
+			// Rollback last changes to program.
+			int removeCount = 0;
+			if( isModeCreation ) {
+				removeCount ++;
+				if( !isOpenEnded )
+					removeCount ++;
+			}
+			
+			// TODO: Move to a routine
+			while( removeCount > 0 ) {
+				atNextIndex --;
+				curFrame.removeEntry(atNextIndex);
+				removeCount --;
+			}
+
+			if( e instanceof UnsatisfiedLinkException )
+				throw (UnsatisfiedLinkException)e;
+			if( e instanceof RuntimeException)
+				throw e;
+			else
+				throw new IllegalStateException("Unknown exception.", e);	// Unsually this should never happen.
+		}
 
 		if( isModeCreation ) {
 			if( isRegistered )
@@ -117,7 +142,7 @@ public class ProgramSequence implements IProgramSequence {
 	}	
 	
 	@Override
-	public ProgramSequence endFrame() {
+	public ProgramSequence endFrame() throws UnsatisfiedLinkException {
 		endFrameSpecial(false, true);
 		return this;
 	}
@@ -142,7 +167,7 @@ public class ProgramSequence implements IProgramSequence {
 		checkForOpenFrame();
 		
 		if( atNextIndex <= 0 )
-			throw new IllegalStateException("Illegal call at an empty program.");
+			throw new ProgramSequenceException("Illegal call at an empty program.");
 		
 		AbstractFrameEntry entry = curFrame.getEntries().get(atNextIndex - 1);
 		if( entry instanceof AbstractForkableFrameEntry ) {
@@ -150,7 +175,7 @@ public class ProgramSequence implements IProgramSequence {
 			forkableEntry.setForks(toLabels);
 		}
 		else
-			throw new IllegalStateException("Illegal call at non forkable entry.");
+			throw new ProgramSequenceException("Illegal call at non forkable entry.");
 
 		return this;
 	}
@@ -251,7 +276,7 @@ public class ProgramSequence implements IProgramSequence {
 
 	/////////////
 	
-	private void finalizeFrame(Frame frame) {
+	private void finalizeFrame(Frame frame) throws UnsatisfiedLinkException {
 		int iCurPosition = 0;	// Relative to frame!
 		
 		frame.clearFinalized();
@@ -285,7 +310,7 @@ public class ProgramSequence implements IProgramSequence {
 						String jumpLabelName = jumps[i];
 						LabelFrameEntry labelEntry = frame.getLabelEntryByName(jumpLabelName);
 						if( labelEntry == null ) {
-							throw new IllegalStateException(
+							throw new UnsatisfiedLinkException(
 									"Unsatisfied link to label " +
 									jumpLabelName + " at frame " +
 									frame.getFrameName() );
@@ -308,7 +333,7 @@ public class ProgramSequence implements IProgramSequence {
 
 	private void checkForOpenFrame() {
 		if( curFrame == null )
-			throw new IllegalStateException("No frame is open.");
+			throw new ProgramSequenceException("No frame is open.");
 	}
 		
 	/////////////
@@ -347,6 +372,20 @@ public class ProgramSequence implements IProgramSequence {
 			entries.add(atIndex, entry);
 			for( int i = atIndex + 1; i < entries.size(); i ++ )
 				entries.get(i).setIndex(i);
+		}
+		
+		void removeEntry(int atIndex) {
+			if( atIndex < 0 || atIndex >= entries.size() )
+				throw new IllegalArgumentException("Index out of bounds. Tried to access " + atIndex + " of a size " + entries.size());
+			AbstractFrameEntry entry = entries.get(atIndex);
+			
+			// Maybe undo changes on the labels registry 
+			if( entry instanceof LabelFrameEntry ) {
+				LabelFrameEntry label = (LabelFrameEntry)entry;
+				nameToLabel.remove(label.getLabelName());
+			}
+			
+			entries.remove(atIndex);
 		}
 		
 		AbstractFrameEntry getLastEntry() {

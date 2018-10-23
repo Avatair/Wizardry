@@ -24,7 +24,7 @@ public class CommandStreamBuilder<T> {
 	
 	public CommandStreamBuilder<T> putCommand(ICommand cmdData, T context, int amountFollowers) {
 		if( curCommandIdx >= entries.size() )
-			throw new IllegalStateException("Program is terminated.");
+			throw new CommandStreamException("Program is terminated.");
 		if( cmdData == null )
 			throw new IllegalArgumentException("Command is null.");
 		
@@ -47,7 +47,7 @@ public class CommandStreamBuilder<T> {
 	
 	public CommandStreamBuilder<T> putEnter(ICommandGenerator enterGen) {
 		if( curCommandIdx >= entries.size() )
-			throw new IllegalStateException("Program is terminated.");
+			throw new CommandStreamException("Program is terminated.");
 		if( enterGen == null )
 			throw new IllegalArgumentException("Command generator is null.");
 		
@@ -92,11 +92,18 @@ public class CommandStreamBuilder<T> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public CommandStreamBuilder<T> processOpen(Function<CommandBuildContext<T>, CommandBuildResult> fct) {
+	public CommandStreamBuilder<T> processOpen(Function<CommandBuildContext<T>, CommandBuildResult> fct) throws UnsatisfiedLinkException {
 		CommandBuildContext<T> ctx;
 		while( (ctx = getNextOpenCommand()) != null ) {
 			CommandBuildResult newCtx = fct.apply(ctx);
 			if( newCtx != null ) {
+				Exception exc = newCtx.getThrownException();
+				if( exc != null ) {
+					if( exc instanceof UnsatisfiedLinkException )
+						throw new UnsatisfiedLinkException("Found an unsatisfied link. See cause.", exc);
+					throw new CommandStreamException("Exception thrown while building stream content. See cause.", exc);
+				}
+				
 				if( newCtx instanceof CommandTargetBuildResult ) {
 					CommandTargetBuildResult<T> newCmdCtx = (CommandTargetBuildResult<T>)newCtx;
 					putCommand(newCmdCtx.getCommandData(), newCmdCtx.getNextContext(), newCmdCtx.getNextAmountFollowers());
@@ -107,7 +114,6 @@ public class CommandStreamBuilder<T> {
 				}
 				else
 					throw new IllegalStateException("Unknown build target type");
-				
 			}
 			else
 				putCommand(NullCommand.SINGLETON, null, 0);
@@ -227,7 +233,7 @@ public class CommandStreamBuilder<T> {
 		CommandStreamEntry toProgramEntry() {
 			AbstractInstructionType container = getEntry().getInstContainer();
 			if( container == null )
-				throw new IllegalStateException("Program has open nodes!");
+				throw new CommandStreamException("Program has open nodes!");
 			
 			CommandInstance cmd;
 			if( container instanceof CommandInstructionType ) {
