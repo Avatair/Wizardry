@@ -15,10 +15,8 @@ public class SpellProgram {
 	private static ProgramSequence generics = null;
 	
 	private final ScriptKey configuration;
-	private WizardryOperable initialState;
+	private WizardryOperable initialState = null;
 	private ICommandGenerator initRoutine;
-	
-	private boolean initializationFailed = false;
 	
 	SpellProgram(ScriptKey configuration) {
 		// Only initializable from ProgramCache
@@ -26,10 +24,11 @@ public class SpellProgram {
 		this.configuration = configuration;
 	}
 
-	void compileProgram() {
+	void initProgram() {
 		// NOTE: If exceptions are thrown. Don't quit minecraft!
 		
 		initRoutine = null;
+		initialState = null;
 		
 		// Load scripts
 		try {
@@ -38,26 +37,26 @@ public class SpellProgram {
 			initRoutine = RunUtils.compileProgram("initMain", assemblies);
 			// TODO: Add more routines here ...
 			
-			initializationFailed = false;
+			initialState = new WizardryOperable();
+			RunUtils.runProgram(initialState, initRoutine);	// TODO: Handle exceptions
 		} catch (Exception e) {
 			
 			// TODO: Handle proper way!
 			e.printStackTrace();
-			initializationFailed = true;
 		}
 	}
 	
 	public boolean runProgram(ExecutionPhase phase) {
-		if( initializationFailed )
+		if( initialState == null )
 			return false; // If something was unsuccessful when loading.
 		
 		if( ExecutionPhase.INITIALIZATION.equals(phase) ) {
-			if( initRoutine == null )
+/*			if( initRoutine == null )
 				throw new IllegalStateException("Init routine must exist.");
 			initialState = new WizardryOperable();
 			RunUtils.runProgram(initialState, initRoutine);
 			
-			// TODO: Process state output
+			// TODO: Process state output */
 		}
 		else
 			throw new IllegalArgumentException("Unknown execution phase " + phase);

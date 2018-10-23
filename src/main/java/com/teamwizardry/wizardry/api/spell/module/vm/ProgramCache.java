@@ -15,11 +15,11 @@ public class ProgramCache {
 		SpellProgram program = cache.get(key);
 		if( program == null ) {
 			program = new SpellProgram(key);
-			cache.put(key, program);
 
 			// Initialize program ...
-			program.compileProgram();
-			program.runProgram(ExecutionPhase.INITIALIZATION);
+			program.initProgram();
+			
+			cache.put(key, program);
 		}
 		
 		return program;

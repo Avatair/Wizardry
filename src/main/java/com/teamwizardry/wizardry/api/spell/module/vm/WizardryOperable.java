@@ -14,7 +14,7 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 		super(WizardryOperable.class);
 	}
 
-	public WizardryOperable(Class<WizardryOperable> clazz, WizardryOperable prev, boolean isForked) {
+	public WizardryOperable(WizardryOperable prev, boolean isForked) {
 		super(WizardryOperable.class, prev, isForked);
 	}
 

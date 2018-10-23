@@ -12,6 +12,7 @@ import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
 import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
+import com.teamwizardry.wizardry.api.spell.module.vm.SpellProgram;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.client.fx.LibParticles;
@@ -76,6 +77,8 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+		SpellProgram program = getProgram(spellRing);
+		
 		World world = spell.world;
 		Vec3d look = spell.getData(LOOK);
 		Vec3d position = spell.getOrigin();

@@ -1,5 +1,5 @@
 package com.teamwizardry.wizardry.api.spell.module.vm;
 
 public enum ExecutionPhase {
-	INITIALIZATION
+	INITIALIZATION, RUN_TICK
 }
