@@ -3,6 +3,7 @@ package com.teamwizardry.wizardry.api.spell.module.vm;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.lib.vm.command.CommandException;
 import com.teamwizardry.wizardry.lib.vm.command.operable.MagicScriptOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 
 import kotlin.Pair;
 
@@ -44,6 +45,7 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 			if( !serializableKey.component2().isInstance(obj) )
 				return;	// TODO: Throw exception
 			spellData.<Object>addData(serializableKey, obj); */
+			throw new OperableException("Failed atempt to write to variable '" + key + "'. Variable is not existing in SpellData");
 		}
 		super.setData(key, obj);
 	}
@@ -55,6 +57,7 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 		if( spellData != null && isSpellDataKey(key) ) {
 			String spellDataKey = getSpellDataKey(key);
 			// ...
+			throw new OperableException("Failed atempt to read from variable '" + key + "'. Variable is not existing in SpellData");
 		}
 		
 		return super.getValue(key);
@@ -67,6 +70,7 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 		if( spellData != null && isSpellDataKey(key) ) {
 			String spellDataKey = getSpellDataKey(key);
 			// ...
+			return false;
 		}
 		
 		return super.hasData(key);

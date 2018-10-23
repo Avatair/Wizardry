@@ -16,7 +16,7 @@ public class Int3Command implements ICommand {
 	private Int3Command() {}
 	
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable)
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
 		throw new CommandException("Int 3 reached!");
 	}

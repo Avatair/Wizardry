@@ -4,6 +4,6 @@ import com.teamwizardry.wizardry.lib.vm.ActionProcessor;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 
 public interface ICommand {
-	void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable) throws CommandException;
+	void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable) throws CommandException;
 	CommandState getDefaultState(CommandInstance target);	
 }

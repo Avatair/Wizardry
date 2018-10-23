@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class SetValueCommand implements ICommand {
@@ -22,20 +23,25 @@ public class SetValueCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable) throws CommandException {
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable) throws CommandException {
 		if( !(cmdOperable instanceof IMagicCommandOperable) )
 			throw new IllegalArgumentException("Incompatible type. Should be IMagicCommandOperable");
-		
-		DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Setting " + key + " to " + value);
 		IMagicCommandOperable stateData = (IMagicCommandOperable)cmdOperable;
-		if( valueIsVariable ) {
-			Object storedValue = stateData.getValue(value.toString());
-			if( storedValue == null )
-				throw new CommandException("Variable " + value + " has no value.");
-			stateData.setData(key, storedValue);
+
+		try {
+			DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Setting " + key + " to " + value);
+			if( valueIsVariable ) {
+				Object storedValue = stateData.getValue(value.toString());
+				if( storedValue == null )
+					throw new CommandException("Variable " + value + " has no value.");
+				stateData.setData(key, storedValue);
+			}
+			else
+				stateData.setData(key, value);
 		}
-		else
-			stateData.setData(key, value);
+		catch(OperableException exc) {
+			throw new CommandException("Failed to execute an operation. See cause.", exc);
+		}
 	}
 
 	@Override

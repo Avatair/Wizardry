@@ -26,13 +26,15 @@ public class RunUtils {
 		runProgram(initialStateTemplate, program);
 	}
 	
-	public static void runProgram(ICommandOperable initialStateTemplate, ICommandGenerator program) {
+	public static ActionProcessor runProgram(ICommandOperable initialStateTemplate, ICommandGenerator program) {
 		ActionProcessor actProc = new ActionProcessor();
 		
 		CommandInstance[] cmds = program.getNextInstances(null);
 		for( CommandInstance cmd : cmds ) 
 			actProc.startAction(new CommandDispatcherAction(initialStateTemplate.makeCopy(cmds.length > 1), cmd, program, 0) );
 		processorLoop(actProc);
+		
+		return actProc;
 	}
 	
 	public static void processorLoop(ActionProcessor actProc) {

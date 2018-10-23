@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class EchoCommand implements ICommand {
@@ -21,7 +22,7 @@ public class EchoCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable)
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
 		if( !(cmdOperable instanceof IMagicCommandOperable) )
 			throw new IllegalArgumentException("Incompatible type. Should be IMagicCommandOperable");
@@ -29,38 +30,43 @@ public class EchoCommand implements ICommand {
 		
 		// SECURITY NOTE: If program output stream is redirected to a file then a leak is existing.
 		//                Echo shouldn't be allowed to print to custom files.
-		
-		Object valueToEcho;
-		if( outputValue != null ) {
-			if( isOutputVariable ) {
-				valueToEcho = stateData.getValue(outputValue.toString());
-				if( valueToEcho == null ) {
-					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-							"Failed to execute 'load' command due to missing variable '" + outputValue.toString() + "'.");
-					throw new CommandException("Missing variable '" + outputValue.toString() + "'");
-				}			                         
+
+		try {
+			Object valueToEcho;
+			if( outputValue != null ) {
+				if( isOutputVariable ) {
+					valueToEcho = stateData.getValue(outputValue.toString());
+					if( valueToEcho == null ) {
+						DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
+								"Failed to execute 'load' command due to missing variable '" + outputValue.toString() + "'.");
+						throw new CommandException("Missing variable '" + outputValue.toString() + "'");
+					}			                         
+				}
+				else {
+					valueToEcho = outputValue;
+				}
 			}
 			else {
-				valueToEcho = outputValue;
+				valueToEcho = stateData.popData();
+				if( valueToEcho == null ) {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
+							"Failed to execute 'load' command due to empty stack.");
+					throw new CommandException("Stack is empty.");
+				}
+			}
+			
+			String outputString = valueToEcho.toString();
+			DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
+					"Printing '" + outputString + "' command due to " + (isStdErrTarget ? "stderr":"stdout") + ".");
+			if( isStdErrTarget ) {
+				System.err.println(outputString);
+			}
+			else {
+				System.out.println(outputString);
 			}
 		}
-		else {
-			valueToEcho = stateData.popData();
-			if( valueToEcho == null ) {
-				DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-						"Failed to execute 'load' command due to empty stack.");
-				throw new CommandException("Stack is empty.");
-			}
-		}
-		
-		String outputString = valueToEcho.toString();
-		DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-				"Printing '" + outputString + "' command due to " + (isStdErrTarget ? "stderr":"stdout") + ".");
-		if( isStdErrTarget ) {
-			System.err.println(outputString);
-		}
-		else {
-			System.out.println(outputString);
+		catch(OperableException exc) {
+			throw new CommandException("Failed to execute an operation. See cause.", exc);
 		}
 	}
 

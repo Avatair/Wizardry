@@ -28,7 +28,7 @@ public class CommandDispatcherAction extends Action {
 			DebugUtils.printDebug("EVENTS", "\tAction ticked with TTL " + cmdState.getTimeToLive() );
 			if( cmdState.getTimeToLive() > 0 ) {
 				try {
-					cmdState.getInstance().getCommand().performOperation(getRegisteredAt(), cmdOperable);
+					cmdState.getInstance().getCommand().performOperation(getRegisteredAt(), cmdState, cmdOperable);
 					cmdState.setTimeToLive(cmdState.getTimeToLive() - 1);
 				}
 				catch(CommandException exc) {

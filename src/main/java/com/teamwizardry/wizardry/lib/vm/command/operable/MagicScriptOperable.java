@@ -55,7 +55,7 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 	@Override
 	public void pushData(Object obj) {
 		if( obj == null )
-			throw new IllegalArgumentException("Object may not be null.");
+			throw new OperableException("Object may not be null.");
 		stack.addLast(obj);
 	}
 	
@@ -65,7 +65,7 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 			return null;
 		Object obj = stack.removeLast();
 		if( obj == null )
-			throw new IllegalStateException("A null object was existing in stack.");
+			throw new OperableException("A null object was existing in stack.");
 		return obj;
 	}
 	

@@ -14,7 +14,7 @@ public class NullCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable) {
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable) {
 		// Do nothing
 	}
 

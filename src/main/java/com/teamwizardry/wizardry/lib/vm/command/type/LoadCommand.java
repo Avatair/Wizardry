@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class LoadCommand implements ICommand {
@@ -22,7 +23,7 @@ public class LoadCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable)
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
 		if( !(cmdOperable instanceof IMagicCommandOperable) )
 			throw new IllegalArgumentException("Incompatible type. Should be IMagicCommandOperable");
@@ -32,44 +33,49 @@ public class LoadCommand implements ICommand {
 		// and resolves a variable value from it.
 		// SECURITY NOTE: In a productive system, such commands are potential security leaks due to their universality.
 
-		Object data;
-		if( fromPointer != null ) {
-			if( isPointerVariable ) {
-				data = stateData.getValue(fromPointer);
-				if( data == null ) {
-					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-							"Failed to execute 'load' command due to missing pointer variable '" + fromPointer + "'.");
-					throw new CommandException("Pointer variable '" + fromPointer + "' is missing while reading arguments for 'load'.");
+		try {
+			Object data;
+			if( fromPointer != null ) {
+				if( isPointerVariable ) {
+					data = stateData.getValue(fromPointer);
+					if( data == null ) {
+						DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
+								"Failed to execute 'load' command due to missing pointer variable '" + fromPointer + "'.");
+						throw new CommandException("Pointer variable '" + fromPointer + "' is missing while reading arguments for 'load'.");
+					}
+				}
+				else {
+					data = fromPointer;
 				}
 			}
 			else {
-				data = fromPointer;
+				data = stateData.popData();
+				if( data == null ) {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
+							"Failed to execute 'load' command due to empty stack.");
+					throw new CommandException("Stack is empty while reading arguments for 'load'.");
+				}
 			}
-		}
-		else {
-			data = stateData.popData();
-			if( data == null ) {
+			
+			String variableName = data.toString();
+			Object value = stateData.getValue(variableName);
+			if( value == null ) {
 				DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-						"Failed to execute 'load' command due to empty stack.");
-				throw new CommandException("Stack is empty while reading arguments for 'load'.");
+						"Failed to execute 'load' command due to unknown variable '" + variableName + "'.");
+				throw new CommandException("Unknown variable '" + variableName + "'.");
+			}
+	
+			if( toVariable != null ) {
+				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Loading value from '" + variableName + "' to variable '" + toVariable + "'.");
+				stateData.setData(toVariable, value);
+			}
+			else {
+				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Loading value from '" + variableName + "' to stack.");
+				stateData.pushData(value);
 			}
 		}
-		
-		String variableName = data.toString();
-		Object value = stateData.getValue(variableName);
-		if( value == null ) {
-			DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
-					"Failed to execute 'load' command due to unknown variable '" + variableName + "'.");
-			throw new CommandException("Unknown variable '" + variableName + "'.");
-		}
-
-		if( toVariable != null ) {
-			DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Loading value from '" + variableName + "' to variable '" + toVariable + "'.");
-			stateData.setData(toVariable, value);
-		}
-		else {
-			DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Loading value from '" + variableName + "' to stack.");
-			stateData.pushData(value);
+		catch(OperableException exc) {
+			throw new CommandException("Failed to execute an operation. See cause.", exc);
 		}
 	}
 

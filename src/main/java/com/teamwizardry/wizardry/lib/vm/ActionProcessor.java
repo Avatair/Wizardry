@@ -1,8 +1,10 @@
 package com.teamwizardry.wizardry.lib.vm;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
@@ -10,6 +12,7 @@ public class ActionProcessor {
 	private HashMap<Integer, Action> registry = new HashMap<Integer, Action>();
 	private ArrayList<Action> actionQueue = new ArrayList<Action>();
 	private LinkedList<Integer> newActionIDs = new LinkedList<Integer>();
+	private LinkedList<Action> failedActions = new LinkedList<Action>();
 	private int nextID = 1;
 	
 	private boolean bIsActive;
@@ -80,8 +83,18 @@ public class ActionProcessor {
 					DebugUtils.printDebug("FAULT", "First exception is unknown.");	// NOTE: Should never occur if Action.dieByException() is
 																					//       the only place to kill an action by exception
 			}
-			else
+			else {
 				act.dieByException(exc);
+				failedActions.add(act);
+			}
 		}
+	}
+	
+	public List<Action> getFailedActions() {
+		return Collections.unmodifiableList(failedActions);
+	}
+	
+	public void clearFailedActions() {
+		failedActions.clear();
 	}
 }

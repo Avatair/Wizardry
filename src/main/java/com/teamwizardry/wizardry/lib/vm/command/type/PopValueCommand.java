@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class PopValueCommand implements ICommand {
@@ -18,28 +19,33 @@ public class PopValueCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable)
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
 		if( !(cmdOperable instanceof IMagicCommandOperable) )
 			throw new IllegalArgumentException("Incompatible type. Should be IMagicCommandOperable");
 		IMagicCommandOperable stateData = (IMagicCommandOperable)cmdOperable;
 
-		Object value = stateData.popData();
-		if( popToVariable != null ) {
-			if( value == null ) {
-				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable '" + popToVariable + "'. Stack is empty.");
-				throw new CommandException("Stack is empty.");
+		try {
+			Object value = stateData.popData();
+			if( popToVariable != null ) {
+				if( value == null ) {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable '" + popToVariable + "'. Stack is empty.");
+					throw new CommandException("Stack is empty.");
+				}
+				else {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pop value " + value.toString() + " to variable " + popToVariable);
+					stateData.setData(popToVariable, value);			
+				}
 			}
 			else {
-				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pop value " + value.toString() + " to variable " + popToVariable);
-				stateData.setData(popToVariable, value);			
+				if( value == null ) {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable.");
+					throw new CommandException("Stack is empty.");
+				}
 			}
 		}
-		else {
-			if( value == null ) {
-				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable.");
-				throw new CommandException("Stack is empty.");
-			}
+		catch(OperableException exc) {
+			throw new CommandException("Failed to execute an operation. See cause.", exc);
 		}
 	}
 

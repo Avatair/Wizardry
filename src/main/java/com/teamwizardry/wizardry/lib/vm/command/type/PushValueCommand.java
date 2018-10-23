@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
+import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
 import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class PushValueCommand implements ICommand {
@@ -19,24 +20,29 @@ public class PushValueCommand implements ICommand {
 	}
 
 	@Override
-	public void performOperation(ActionProcessor actionProcessor, ICommandOperable cmdOperable)
+	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
 		if( !(cmdOperable instanceof IMagicCommandOperable) )
 			throw new IllegalArgumentException("Incompatible type. Should be IMagicCommandOperable");
 		IMagicCommandOperable stateData = (IMagicCommandOperable)cmdOperable;
-		
-		if( isVariable ) {
-			Object value = stateData.getValue(pushWhat.toString());
-			if( value == null ) {
-				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to push from variable " + pushWhat);
-				throw new CommandException("Variable " + pushWhat + " has no assigned value.");
+
+		try {
+			if( isVariable ) {
+				Object value = stateData.getValue(pushWhat.toString());
+				if( value == null ) {
+					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to push from variable " + pushWhat);
+					throw new CommandException("Variable " + pushWhat + " has no assigned value.");
+				}
+				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pushing value " + value.toString() + " from variable " + pushWhat);
+				stateData.pushData(value);
 			}
-			DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pushing value " + value.toString() + " from variable " + pushWhat);
-			stateData.pushData(value);
+			else {
+				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pushing string value '" + pushWhat + "'");
+				stateData.pushData(pushWhat);
+			}
 		}
-		else {
-			DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pushing string value '" + pushWhat + "'");
-			stateData.pushData(pushWhat);
+		catch(OperableException exc) {
+			throw new CommandException("Failed to execute an operation. See cause.", exc);
 		}
 	}
 

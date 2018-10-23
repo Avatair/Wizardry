@@ -3,6 +3,8 @@ package com.teamwizardry.wizardry.api.spell.module.vm;
 import java.io.IOException;
 import java.util.List;
 
+import com.teamwizardry.wizardry.lib.vm.Action;
+import com.teamwizardry.wizardry.lib.vm.ActionProcessor;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.MagicScriptBuilder;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequence;
@@ -37,8 +39,14 @@ public class SpellProgram {
 			initRoutine = RunUtils.compileProgram("initMain", assemblies);
 			// TODO: Add more routines here ...
 			
+			// Call initialization
 			initialState = new WizardryOperable();
-			RunUtils.runProgram(initialState, initRoutine);	// TODO: Handle exceptions
+			ActionProcessor proc = RunUtils.runProgram(initialState, initRoutine);	// TODO: Handle exceptions
+			for( Action failedAction : proc.getFailedActions() ) {
+				Exception exc = failedAction.getException();
+				
+				exc.printStackTrace();  // TODO: Handle proper way!
+			}
 		} catch (Exception e) {
 			
 			// TODO: Handle proper way!
