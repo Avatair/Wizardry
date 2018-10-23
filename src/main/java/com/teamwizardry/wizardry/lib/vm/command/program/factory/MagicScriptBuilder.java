@@ -88,11 +88,7 @@ public class MagicScriptBuilder {
 						}
 						
 						// Do some proc init
-						try {
-							targetSequence.editFrame(frameNameNode);
-						} catch (UnsatisfiedLinkException e) {
-							throw new ScriptParserException("Edited routine '" + frameNameNode + "' is not existing.", e);
-						}
+						targetSequence.editFrame(frameNameNode);
 						
 						Token location = tokenizer.getNextToken().expectCompatibleTypes(TokenType.KEYWORD);
 						
