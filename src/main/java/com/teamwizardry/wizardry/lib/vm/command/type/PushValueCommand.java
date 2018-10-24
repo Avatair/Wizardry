@@ -31,7 +31,7 @@ public class PushValueCommand implements ICommand {
 				Object value = stateData.getValue(pushWhat.toString());
 				if( value == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to push from variable " + pushWhat);
-					throw new CommandException("Variable " + pushWhat + " has no assigned value.");
+					throw new CommandException(this, cmdState, cmdOperable, "Variable " + pushWhat + " has no assigned value.");
 				}
 				DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pushing value " + value.toString() + " from variable " + pushWhat);
 				stateData.pushData(value);
@@ -42,7 +42,7 @@ public class PushValueCommand implements ICommand {
 			}
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

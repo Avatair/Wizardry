@@ -41,7 +41,7 @@ public class LoadCommand implements ICommand {
 					if( data == null ) {
 						DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
 								"Failed to execute 'load' command due to missing pointer variable '" + fromPointer + "'.");
-						throw new CommandException("Pointer variable '" + fromPointer + "' is missing while reading arguments for 'load'.");
+						throw new CommandException(this, cmdState, cmdOperable, "Pointer variable '" + fromPointer + "' is missing while reading arguments for 'load'.");
 					}
 				}
 				else {
@@ -53,7 +53,7 @@ public class LoadCommand implements ICommand {
 				if( data == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
 							"Failed to execute 'load' command due to empty stack.");
-					throw new CommandException("Stack is empty while reading arguments for 'load'.");
+					throw new CommandException(this, cmdState, cmdOperable, "Stack is empty while reading arguments for 'load'.");
 				}
 			}
 			
@@ -62,7 +62,7 @@ public class LoadCommand implements ICommand {
 			if( value == null ) {
 				DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
 						"Failed to execute 'load' command due to unknown variable '" + variableName + "'.");
-				throw new CommandException("Unknown variable '" + variableName + "'.");
+				throw new CommandException(this, cmdState, cmdOperable, "Unknown variable '" + variableName + "'.");
 			}
 	
 			if( toVariable != null ) {
@@ -75,7 +75,7 @@ public class LoadCommand implements ICommand {
 			}
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

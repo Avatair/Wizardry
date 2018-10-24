@@ -39,7 +39,7 @@ public class EchoCommand implements ICommand {
 					if( valueToEcho == null ) {
 						DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
 								"Failed to execute 'load' command due to missing variable '" + outputValue.toString() + "'.");
-						throw new CommandException("Missing variable '" + outputValue.toString() + "'");
+						throw new CommandException(this, cmdState, cmdOperable, "Missing variable '" + outputValue.toString() + "'");
 					}			                         
 				}
 				else {
@@ -51,7 +51,7 @@ public class EchoCommand implements ICommand {
 				if( valueToEcho == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER",
 							"Failed to execute 'load' command due to empty stack.");
-					throw new CommandException("Stack is empty.");
+					throw new CommandException(this, cmdState, cmdOperable, "Stack is empty.");
 				}
 			}
 			
@@ -66,7 +66,7 @@ public class EchoCommand implements ICommand {
 			}
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

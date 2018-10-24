@@ -30,7 +30,7 @@ public class PopValueCommand implements ICommand {
 			if( popToVariable != null ) {
 				if( value == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable '" + popToVariable + "'. Stack is empty.");
-					throw new CommandException("Stack is empty.");
+					throw new CommandException(this, cmdState, cmdOperable, "Stack is empty.");
 				}
 				else {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Pop value " + value.toString() + " to variable " + popToVariable);
@@ -40,12 +40,12 @@ public class PopValueCommand implements ICommand {
 			else {
 				if( value == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to pop a value from stack to variable.");
-					throw new CommandException("Stack is empty.");
+					throw new CommandException(this, cmdState, cmdOperable, "Stack is empty.");
 				}
 			}
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

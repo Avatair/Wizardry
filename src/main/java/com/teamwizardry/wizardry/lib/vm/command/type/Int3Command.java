@@ -6,8 +6,6 @@ import com.teamwizardry.wizardry.lib.vm.command.CommandInstance;
 import com.teamwizardry.wizardry.lib.vm.command.CommandState;
 import com.teamwizardry.wizardry.lib.vm.command.ICommand;
 import com.teamwizardry.wizardry.lib.vm.command.operable.ICommandOperable;
-import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
-import com.teamwizardry.wizardry.lib.vm.command.utils.DebugUtils;
 
 public class Int3Command implements ICommand {
 
@@ -18,7 +16,7 @@ public class Int3Command implements ICommand {
 	@Override
 	public void performOperation(ActionProcessor actionProcessor, CommandState cmdState, ICommandOperable cmdOperable)
 			throws CommandException {
-		throw new CommandException("Int 3 reached!");
+		throw new CommandException(this, cmdState, cmdOperable, "Int 3 reached!");
 	}
 
 	@Override

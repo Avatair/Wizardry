@@ -33,14 +33,14 @@ public class SetValueCommand implements ICommand {
 			if( valueIsVariable ) {
 				Object storedValue = stateData.getValue(value.toString());
 				if( storedValue == null )
-					throw new CommandException("Variable " + value + " has no value.");
+					throw new CommandException(this, cmdState, cmdOperable, "Variable " + value + " has no value.");
 				stateData.setData(key, storedValue);
 			}
 			else
 				stateData.setData(key, value);
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

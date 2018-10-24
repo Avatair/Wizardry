@@ -32,7 +32,7 @@ public class RunUtils {
 		
 		CommandInstance[] cmds = program.getNextInstances(null);
 		for( CommandInstance cmd : cmds ) 
-			actProc.startAction(new CommandDispatcherAction(initialStateTemplate.makeCopy(cmds.length > 1), cmd, program, 0) );
+			actProc.startAction(new CommandDispatcherAction(initialStateTemplate.makeCopy(true), cmd, program, 0) );
 		processorLoop(actProc);
 		
 		return actProc;

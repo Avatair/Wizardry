@@ -42,7 +42,7 @@ public class StoreCommand implements ICommand {
 					data1 = stateData.getValue(value.toString());
 					if( data1 == null ) {
 						DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to store value. Couldn't resolve variable '" + value.toString() + "'");
-						throw new CommandException("Couldn't retrieve value from variable '" + value.toString() + "'.");
+						throw new CommandException(this, cmdState, cmdOperable, "Couldn't retrieve value from variable '" + value.toString() + "'.");
 					}
 				}
 				else {
@@ -53,7 +53,7 @@ public class StoreCommand implements ICommand {
 				data1 = stateData.popData();
 				if( data1 == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to store value. Couldn't retrieve value from stack.");
-					throw new CommandException("Couldn't retrieve value from stack. Stack is empty.");
+					throw new CommandException(this, cmdState, cmdOperable, "Couldn't retrieve value from stack. Stack is empty.");
 				}
 			}
 			
@@ -63,7 +63,7 @@ public class StoreCommand implements ICommand {
 					data2 = stateData.getValue(toPointer);
 					if( data2 == null ) {
 						DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to store value. Couldn't resolve variable '" + toPointer + "'");
-						throw new CommandException("Couldn't retrieve pointer value from variable '" + toPointer + "'.");
+						throw new CommandException(this, cmdState, cmdOperable, "Couldn't retrieve pointer value from variable '" + toPointer + "'.");
 					}
 				}
 				else {
@@ -74,7 +74,7 @@ public class StoreCommand implements ICommand {
 				data2 = stateData.popData();
 				if( data2 == null ) {
 					DebugUtils.printDebug("MAGICSCRIPT_BUILDER", "Failed to store value. Couldn't retrieve pointer from stack.");
-					throw new CommandException("Couldn't retrieve pointer from stack. Stack is empty.");
+					throw new CommandException(this, cmdState, cmdOperable, "Couldn't retrieve pointer from stack. Stack is empty.");
 				}
 			}
 	
@@ -83,7 +83,7 @@ public class StoreCommand implements ICommand {
 			stateData.setData(variableName, data1);
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 

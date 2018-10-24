@@ -30,7 +30,7 @@ public class CallNativeCommand implements ICommand {
 			stateData.callNative(cmdName);
 		}
 		catch(OperableException exc) {
-			throw new CommandException("Failed to execute an operation. See cause.", exc);
+			throw new CommandException(this, cmdState, cmdOperable, "Failed to execute an operation. See cause.", exc);
 		}
 	}
 
