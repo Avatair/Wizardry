@@ -6,6 +6,7 @@ import java.util.List;
 import com.teamwizardry.wizardry.lib.vm.Action;
 import com.teamwizardry.wizardry.lib.vm.ActionProcessor;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
+import com.teamwizardry.wizardry.lib.vm.command.operable.IMagicCommandOperable;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.MagicScriptBuilder;
 import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequence;
 import com.teamwizardry.wizardry.lib.vm.command.utils.RunUtils;
@@ -14,40 +15,52 @@ import com.teamwizardry.wizardry.lib.vm.utils.parser.ScriptParserException;
 public class SpellProgram {
 	private static final String GENERICS_SOURCE = "/assets/wizardry/modules/scripts/generics.mgs";
 
+	private static final String ROUTINE_INITMAIN = "initMain";
+
+	private static final String HOOK_RUNSPELL = "hooks.onCasted";
+
 	private static ProgramSequence generics = null;
 	
 	private final ScriptKey configuration;
 	private WizardryOperable initialState = null;
+	
 	private ICommandGenerator initRoutine;
+	private ICommandGenerator runRoutine;
 	
 	SpellProgram(ScriptKey configuration) {
 		// Only initializable from ProgramCache
-		
 		this.configuration = configuration;
 	}
 
 	void initProgram() {
 		// NOTE: If exceptions are thrown. Don't quit minecraft!
-		
-		initRoutine = null;
+
 		initialState = null;
+
+		initRoutine = null;
+		runRoutine = null;
 		
 		// Load scripts
 		try {
 			ProgramSequence[] assemblies = loadSources();
 			
-			initRoutine = RunUtils.compileProgram("initMain", assemblies);
-			// TODO: Add more routines here ...
+			initRoutine = RunUtils.compileProgram(ROUTINE_INITMAIN, assemblies);
 			
 			// Call initialization
 			initialState = new WizardryOperable();
 			ActionProcessor proc = RunUtils.runProgram(initialState, initRoutine);	// TODO: Handle exceptions
-			for( Action failedAction : proc.getFailedActions() ) {
-				Exception exc = failedAction.getException();
-				
-				exc.printStackTrace();  // TODO: Handle proper way!
+			logExceptions(proc);
+			
+			// Retrieve hooks
+			String hook = getValue_String(initialState, HOOK_RUNSPELL, null);
+			if( hook != null ) {
+				runRoutine = RunUtils.compileProgram(hook, assemblies);
 			}
+			
+			// TODO: Add more routines here ...
+
 		} catch (Exception e) {
+			initialState = null;
 			
 			// TODO: Handle proper way!
 			e.printStackTrace();
@@ -58,16 +71,13 @@ public class SpellProgram {
 		if( initialState == null )
 			return false; // If something was unsuccessful when loading.
 		
-		if( ExecutionPhase.INITIALIZATION.equals(phase) ) {
-/*			if( initRoutine == null )
-				throw new IllegalStateException("Init routine must exist.");
-			initialState = new WizardryOperable();
-			RunUtils.runProgram(initialState, initRoutine);
-			
-			// TODO: Process state output */
+		ActionProcessor proc;
+		if( ExecutionPhase.RUN_TICK.equals(phase) ) {
+			proc = RunUtils.runProgram(initialState, runRoutine);
 		}
 		else
 			throw new IllegalArgumentException("Unknown execution phase " + phase);
+		logExceptions(proc);
 		
 		return true;
 	}
@@ -96,5 +106,22 @@ public class SpellProgram {
 			generics = MagicScriptBuilder.createFromResource(GENERICS_SOURCE).build();
 		}
 		return generics;
+	}
+	
+	// TODO: Move to utils, all below!
+	
+	private static void logExceptions(ActionProcessor proc) {
+		for( Action failedAction : proc.getFailedActions() ) {
+			Exception exc = failedAction.getException();
+			
+			exc.printStackTrace();  // TODO: Handle proper way!
+		}
+	}
+	
+	private static String getValue_String(IMagicCommandOperable operable, String key, String defaultValue) {
+		Object value = operable.getValue(key);
+		if( value == null )
+			return defaultValue;
+		return value.toString();
 	}
 }
