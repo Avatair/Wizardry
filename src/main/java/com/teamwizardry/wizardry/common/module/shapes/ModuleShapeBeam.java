@@ -5,10 +5,14 @@ import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.spell.IContinuousModule;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
+import com.teamwizardry.wizardry.api.spell.annotation.ContextSuper;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
+import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideSuper;
 import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
 import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
 import com.teamwizardry.wizardry.api.spell.module.vm.SpellProgram;
@@ -95,7 +99,8 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 				return false;
 			}
 
-			instance.runRunOverrides(spell, spellRing);
+			IShapeOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(IShapeOverrides.class);
+			overrides.onRunBeam(spell, spellRing);
 
 			RayTraceResult trace = new RayTrace(world, look, position, range)
 					.setEntityFilter(input -> input != caster)
@@ -168,7 +173,9 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void renderSpell(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (instance.runRenderOverrides(spell, spellRing)) return;
+		IShapeOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(IShapeOverrides.class);
+		if( overrides.onRenderBeam(spell, spellRing) )
+			return;
 
 		World world = spell.world;
 		Vec3d look = spell.getData(LOOK);
@@ -201,5 +208,18 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 
 		BeamTicker() {
 		}
+	}
+	
+	///////////
+	
+	@ModuleOverride("shape_beam_render")
+	public boolean onRenderBeam(SpellData data, SpellRing shape) {
+		// Default implementation
+		return false;
+	}
+	
+	@ModuleOverride("shape_beam_run")
+	public void onRunBeam(@ContextSuper ModuleOverrideSuper ovdSuper, SpellData data, SpellRing shape) {
+		// Default implementation
 	}
 }

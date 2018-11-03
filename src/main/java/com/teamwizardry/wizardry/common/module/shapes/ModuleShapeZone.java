@@ -11,6 +11,8 @@ import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.ILingeringModule;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
+import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
@@ -84,7 +86,8 @@ public class ModuleShapeZone extends AbstractModuleShapeVM implements IModuleSha
 				return false;
 			}
 			
-			instance.runRunOverrides(spell, spellRing);
+			IShapeOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(IShapeOverrides.class);
+			overrides.onRunZone(spell, spellRing);
 			
 			BlockPos target = new BlockPos(RandUtil.nextDouble(min.x, max.x), RandUtil.nextDouble(min.y, max.y), RandUtil.nextDouble(min.z, max.z));
 			List<Entity> entities = world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(target));
@@ -121,7 +124,8 @@ public class ModuleShapeZone extends AbstractModuleShapeVM implements IModuleSha
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void renderSpell(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (instance.runRenderOverrides(spell, spellRing)) return;
+		IShapeOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(IShapeOverrides.class);
+		if( overrides.onRenderZone(spell, spellRing) ) return;
 
 		Vec3d target = spell.getTarget();
 
@@ -149,5 +153,18 @@ public class ModuleShapeZone extends AbstractModuleShapeVM implements IModuleSha
 	@Override
 	public int getLingeringTime(SpellData spell, SpellRing spellRing) {
 		return (int) spellRing.getAttributeValue(AttributeRegistry.DURATION, spell) * 10;
+	}
+	
+	////////////////
+	
+	@ModuleOverride("shape_zone_run")
+	public void onRunZone(SpellData data, SpellRing shape) {
+		// Default implementation
+	}
+
+	@ModuleOverride("shape_zone_render")
+	public boolean onRenderZone(SpellData data, SpellRing shape) {
+		// Default implementation
+		return false;
 	}
 }
