@@ -1,8 +1,9 @@
-package com.teamwizardry.wizardry.api.spell.module.vm;
+package com.teamwizardry.wizardry.api.spell.vm;
 
 import java.io.IOException;
 import java.util.List;
 
+import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.lib.vm.Action;
 import com.teamwizardry.wizardry.lib.vm.ActionProcessor;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
@@ -12,7 +13,7 @@ import com.teamwizardry.wizardry.lib.vm.command.program.factory.ProgramSequence;
 import com.teamwizardry.wizardry.lib.vm.command.utils.RunUtils;
 import com.teamwizardry.wizardry.lib.vm.utils.parser.ScriptParserException;
 
-public class SpellProgram {
+public class SpellProgramHandler {
 	private static final String GENERICS_SOURCE = "/assets/wizardry/modules/scripts/generics.mgs";
 
 	private static final String ROUTINE_INITMAIN = "initMain";
@@ -27,12 +28,17 @@ public class SpellProgram {
 	private ICommandGenerator initRoutine;
 	private ICommandGenerator runRoutine;
 	
-	SpellProgram(ScriptKey configuration) {
-		// Only initializable from ProgramCache
-		this.configuration = configuration;
+	public SpellProgramHandler(SpellRing spellChain) {
+		if( spellChain.getParentRing() != null )
+			throw new IllegalArgumentException("passed spellRing is not a root.");
+		
+		// Should be only initialized within a SpellRing
+		this.configuration = scanProgramConfiguration( spellChain );
+		
+		initProgram();
 	}
 
-	void initProgram() {
+	private void initProgram() {
 		// NOTE: If exceptions are thrown. Don't quit minecraft!
 
 		initialState = null;
@@ -107,6 +113,15 @@ public class SpellProgram {
 		}
 		return generics;
 	}
+
+	private static ScriptKey scanProgramConfiguration(SpellRing spellRing) {
+		ScriptKey key = new ScriptKey();
+
+		ISpellProgramOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(ISpellProgramOverrides.class);
+		overrides.appendScript(key);
+		
+		return key;
+	}
 	
 	// TODO: Move to utils, all below!
 	
@@ -124,4 +139,6 @@ public class SpellProgram {
 			return defaultValue;
 		return value.toString();
 	}
+	
+
 }

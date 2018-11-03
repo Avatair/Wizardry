@@ -13,7 +13,6 @@ import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
@@ -37,7 +36,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
  * Created by Demoniaque.
  */
 @RegisterModule(ID="shape_touch")
-public class ModuleShapeTouch extends AbstractModuleShapeVM implements IModuleShape {
+public class ModuleShapeTouch implements IModuleShape {
 
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {

@@ -2,14 +2,11 @@ package com.teamwizardry.wizardry.common.module.shapes;
 
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
-import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
 import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.common.entity.projectile.EntitySpellProjectile;
@@ -32,7 +29,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
  * Created by Demoniaque.
  */
 @RegisterModule(ID="shape_projectile")
-public class ModuleShapeProjectile extends AbstractModuleShapeVM implements IModuleShape {
+public class ModuleShapeProjectile implements IModuleShape {
 
 	@Override
 	public String[] compatibleModifierClasses() {
@@ -40,7 +37,7 @@ public class ModuleShapeProjectile extends AbstractModuleShapeVM implements IMod
 	}
 
 	@Override
-	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public boolean ignoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 

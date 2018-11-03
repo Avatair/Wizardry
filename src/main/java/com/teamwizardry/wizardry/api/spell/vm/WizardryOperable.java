@@ -1,4 +1,4 @@
-package com.teamwizardry.wizardry.api.spell.module.vm;
+package com.teamwizardry.wizardry.api.spell.vm;
 
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.lib.vm.command.CommandException;

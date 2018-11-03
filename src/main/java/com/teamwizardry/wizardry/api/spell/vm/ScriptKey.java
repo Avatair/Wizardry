@@ -1,4 +1,4 @@
-package com.teamwizardry.wizardry.api.spell.module.vm;
+package com.teamwizardry.wizardry.api.spell.vm;
 
 import java.util.ArrayList;
 import java.util.Collections;

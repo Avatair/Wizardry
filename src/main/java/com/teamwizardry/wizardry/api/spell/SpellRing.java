@@ -23,9 +23,12 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeRange;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry.Attribute;
 import com.teamwizardry.wizardry.api.spell.attribute.Operation;
+import com.teamwizardry.wizardry.api.spell.module.IModule;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceModifier;
 import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideHandler;
+import com.teamwizardry.wizardry.api.spell.vm.ScriptKey;
+import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler;
 import com.teamwizardry.wizardry.api.util.FixedPointUtils;
 import com.teamwizardry.wizardry.init.ModItems;
 import com.teamwizardry.wizardry.init.ModSounds;
@@ -104,6 +107,12 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 	@Nonnull
 	private ModuleOverrideHandler lazy_overrideHandler = null;	// "lazy" means, that access to variable should be done only over getter
 
+	/**
+	 * Spell program.
+	 */
+	@Nonnull
+	private SpellProgramHandler lazy_spellProgram = null;
+	
 	/**
 	 * The constructor.<br/>
 	 * <b>NOTE</b>: Called only for deserialization.
@@ -404,6 +413,19 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 		}
 		
 		return lazy_overrideHandler;
+	}
+	
+	@Nonnull
+	public synchronized SpellProgramHandler getSpellProgram() {
+		if( lazy_spellProgram == null ) {
+			if( parentRing != null )
+				lazy_spellProgram = parentRing.getSpellProgram();
+			else {
+				lazy_spellProgram = new SpellProgramHandler(this);
+			}
+		}
+		
+		return lazy_spellProgram;
 	}
 	
 	@Nullable

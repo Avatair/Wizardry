@@ -13,9 +13,7 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideSuper;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
-import com.teamwizardry.wizardry.api.spell.module.vm.SpellProgram;
+import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.client.fx.LibParticles;
@@ -45,7 +43,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
  */
 @RegisterModule(ID="shape_beam")
 @Mod.EventBusSubscriber(modid = Wizardry.MODID)
-public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleShape, IContinuousModule {
+public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 
 	public static final String BEAM_OFFSET = "beam offset";
 	public static final String BEAM_CAST = "beam cast";
@@ -58,7 +56,7 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 	}
 
 	@Override
-	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public boolean ignoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 
@@ -72,7 +70,7 @@ public class ModuleShapeBeam extends AbstractModuleShapeVM implements IModuleSha
 
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		SpellProgram program = getProgram(spellRing);
+		SpellProgramHandler program = spellRing.getSpellProgram();
 		
 		World world = spell.world;
 		Vec3d look = spell.getData(LOOK);

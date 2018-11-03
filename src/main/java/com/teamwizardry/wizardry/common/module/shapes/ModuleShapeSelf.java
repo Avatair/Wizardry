@@ -15,7 +15,6 @@ import com.teamwizardry.wizardry.api.spell.annotation.ModuleParameter;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
 
@@ -33,7 +32,7 @@ import javax.annotation.Nonnull;
  * Created by Demoniaque.
  */
 @RegisterModule(ID="shape_self")
-public class ModuleShapeSelf extends AbstractModuleShapeVM implements IModuleShape {
+public class ModuleShapeSelf implements IModuleShape {
 
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {

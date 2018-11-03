@@ -15,8 +15,6 @@ import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleShapeVM;
-import com.teamwizardry.wizardry.api.spell.module.vm.AbstractModuleVM;
 import com.teamwizardry.wizardry.api.util.PosUtils;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
@@ -38,7 +36,7 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
  * Created by Demoniaque.
  */
 @RegisterModule(ID="shape_cone")
-public class ModuleShapeCone extends AbstractModuleShapeVM implements IModuleShape {
+public class ModuleShapeCone implements IModuleShape {
 
 	@Override
 	public String[] compatibleModifierClasses() {
@@ -46,7 +44,7 @@ public class ModuleShapeCone extends AbstractModuleShapeVM implements IModuleSha
 	}
 
 	@Override
-	public boolean defaultIgnoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public boolean ignoreResultForRendering(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		return true;
 	}
 
