@@ -37,15 +37,11 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 	public void setData(String key, Object obj) {
 		// TODO: Handle errors!
 		
-		if( spellData != null && isSpellDataKey(key) ) {
+		if( isSpellDataKey(key) ) {
+			if( spellData == null )
+				throw new OperableException("No spellData is associated in actual context.");
 			String spellDataKey = getSpellDataKey(key);
-/*			Pair<String, Class<Object>> serializableKey = KeySupport.getKeyFor(key);
-			if( serializableKey == null )
-				return;	// TODO: Throw exception on null
-			if( !serializableKey.component2().isInstance(obj) )
-				return;	// TODO: Throw exception
-			spellData.<Object>addData(serializableKey, obj); */
-			throw new OperableException("Failed atempt to write to variable '" + key + "'. Variable is not existing in SpellData");
+			SpellDataConverter.setValue(spellData, spellDataKey, obj);
 		}
 		super.setData(key, obj);
 	}
@@ -54,10 +50,11 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 	public Object getValue(String key) {
 		// TODO: Handle errors!
 		
-		if( spellData != null && isSpellDataKey(key) ) {
+		if( isSpellDataKey(key) ) {
+			if( spellData == null )
+				return null;
 			String spellDataKey = getSpellDataKey(key);
-			// ...
-			throw new OperableException("Failed atempt to read from variable '" + key + "'. Variable is not existing in SpellData");
+			return SpellDataConverter.getValue(spellData, spellDataKey);
 		}
 		
 		return super.getValue(key);
@@ -67,10 +64,11 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 	public boolean hasData(String key) {
 		// TODO: Handle errors!
 		
-		if( spellData != null && isSpellDataKey(key) ) {
+		if( isSpellDataKey(key) ) {
+			if( spellData == null )
+				return false;
 			String spellDataKey = getSpellDataKey(key);
-			// ...
-			return false;
+			return SpellDataConverter.hasData(spellData, spellDataKey);
 		}
 		
 		return super.hasData(key);

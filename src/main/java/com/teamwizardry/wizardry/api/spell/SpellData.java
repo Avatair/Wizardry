@@ -8,7 +8,6 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeModifier;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.attribute.Operation;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry.Attribute;
-
 import com.teamwizardry.wizardry.api.spell.ProcessData.DataType;
 import com.teamwizardry.wizardry.api.spell.SpellDataTypes.BlockSet;
 import com.teamwizardry.wizardry.api.spell.SpellDataTypes.BlockStateCache;
@@ -70,8 +69,12 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		return field;
 	}
 	
-	@Nonnull static Collection<DataField<?>> getAllAvailableFields() {
+	@Nonnull public static Collection<DataField<?>> getAllAvailableFields() {
 		return Collections.unmodifiableCollection(availableFields.values());
+	}
+	
+	@Nonnull public static DataField<?> getFieldByName(String key) {
+		return availableFields.get(key);
 	}
 	
 	public void addAllData(HashMap<DataField<?>, Object> data) {
@@ -79,6 +82,12 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	}
 	
 	public <T> void addData(@Nonnull DataField<T> key, @Nullable T value) {
+		this.data.put(key, value);
+	}
+	
+	public void addDataTypeless(@Nonnull DataField<?> key, @Nullable Object value) {
+		if( !key.getDataType().isInstance(value) )
+			throw new DataSerializationException("SpellData field '" + key.getFieldName() + "' expects a data type '" + key.getDataType() + "', but got a type '" + value.getClass() + "'.");
 		this.data.put(key, value);
 	}
 	
