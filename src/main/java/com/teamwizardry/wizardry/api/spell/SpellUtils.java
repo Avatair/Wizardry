@@ -3,9 +3,9 @@ package com.teamwizardry.wizardry.api.spell;
 import com.teamwizardry.librarianlib.features.helpers.ItemNBTHelper;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.item.BaublesSupport;
+import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceModifier;
-import com.teamwizardry.wizardry.api.spell.module.ModuleShape;
 import com.teamwizardry.wizardry.api.util.ColorUtils;
 import com.teamwizardry.wizardry.init.ModItems;
 import net.minecraft.entity.Entity;
@@ -87,13 +87,13 @@ public class SpellUtils {
 		}
 	}
 	
-	public static List<SpellRing> filterByShape(List<SpellRing> list, Class<? extends ModuleShape> shapeClass) {
+	public static List<SpellRing> filterByShape(List<SpellRing> list, Class<? extends IModuleShape> shapeClass) {
 		ArrayList<SpellRing> newList = new ArrayList<SpellRing>(list.size());
 		if( list == null || list.isEmpty() )
 			return newList;
 		
 		for( SpellRing spell : list ) {
-			if( shapeClass.isInstance(spell.getModule()) )
+			if( shapeClass.isInstance(spell.getModule().getModuleClass()) )
 				newList.add(spell);
 		}
 		
