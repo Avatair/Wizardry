@@ -13,7 +13,6 @@ import com.teamwizardry.wizardry.api.ClientConfigValues;
 import com.teamwizardry.wizardry.api.item.BaublesSupport;
 import com.teamwizardry.wizardry.api.util.RandUtilSeed;
 import com.teamwizardry.wizardry.init.ModItems;
-import com.teamwizardry.wizardry.init.ModPotions;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
 import net.minecraft.block.BlockLiquid;
@@ -26,15 +25,14 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.ItemElytra;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -44,7 +42,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-// TODO: fix cape while in vehicles
 public final class CapeHandler {
 	private final LoadingCache<EntityPlayer, RenderCape> capes = CacheBuilder.newBuilder()
 			.weakKeys()
@@ -68,17 +65,18 @@ public final class CapeHandler {
 	public void onPlayerRender(RenderPlayerEvent.Post event) {
 		EntityPlayer player = event.getEntityPlayer();
 		float delta = event.getPartialRenderTick();
-
-		boolean iWalked = new Vec3d(player.posX, player.posY, player.posZ).distanceTo(new Vec3d(player.prevPosX, player.prevPosY, player.prevPosZ)) > 0.15;
-
-		//TODO: Remove `ClientConfigValues.renderCape` once we have a real cosmetics system
-		if (ClientConfigValues.renderCape && !player.isInvisible() && ((player.getActivePotionEffect(ModPotions.VANISH) != null && iWalked) || player.getActivePotionEffect(ModPotions.VANISH) == null))
-			if (delta < 1) { // not rendering in inventory
-				double x = -TileEntityRendererDispatcher.staticPlayerX;
-				double y = -TileEntityRendererDispatcher.staticPlayerY;
-				double z = -TileEntityRendererDispatcher.staticPlayerZ;
-				instance().getCape(player).render(player, x, y, z, delta);
+		if (ClientConfigValues.renderCape && !player.isInvisible() && !player.isElytraFlying() && !player.isPlayerSleeping() && delta != 1) {
+			RenderCape cape = getCape(player);
+			if (cape.isPresent(player)) {
+				cape.render(
+					player,
+					player.posX - cape.posX - TileEntityRendererDispatcher.staticPlayerX,
+					player.posY - cape.posY - TileEntityRendererDispatcher.staticPlayerY,
+					player.posZ - cape.posZ - TileEntityRendererDispatcher.staticPlayerZ,
+					delta
+				);
 			}
+		}
 	}
 
 	private RenderCape getCape(EntityPlayer player) {
@@ -86,9 +84,14 @@ public final class CapeHandler {
 	}
 
 	@SubscribeEvent
-	public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+	public void onClientTick(TickEvent.ClientTickEvent event) {
 		if (event.side == Side.CLIENT && event.phase == TickEvent.Phase.END) {
-			getCape(event.player).update(event.player);
+			World world = FMLClientHandler.instance().getWorldClient();
+			if (world != null) {
+				for (EntityPlayer player : world.playerEntities) {
+					getCape(player).update(player);
+				}
+			}
 		}
 	}
 
@@ -97,8 +100,6 @@ public final class CapeHandler {
 	}
 
 	private static final class RenderCape {
-		private static final ResourceLocation TEXTURE = new ResourceLocation(Wizardry.MODID, "textures/capes/cape_normal_4.png");
-
 		private static final int PLAYER_SKIP_RANGE = 4 * 4;
 
 		private static final int FLUID_CACHE_CLEAR_RATE = 4;
@@ -125,11 +126,11 @@ public final class CapeHandler {
 
 		private final BlockPos.MutableBlockPos scratchPos = new BlockPos.MutableBlockPos();
 
-		private double playerPosX = 0;
+		private double posX;
 
-		private double playerPosY = 0;
+		private double posY;
 
-		private double playerPosZ = 0;
+		private double posZ;
 
 		private RenderCape(ImmutableList<Point> points, ImmutableList<Quad> quads) {
 			this.points = points;
@@ -142,7 +143,7 @@ public final class CapeHandler {
 
 		private static RenderCape create(int width, int height) {
 			List<Point> points = Lists.newArrayList();
-			List<Quad> quads = Lists.newArrayList();
+			ImmutableList.Builder<Quad> quads = ImmutableList.builder();
 			float scale = 2 / 16F;
 			int columns = width + 1;
 			PlayerCollisionResolver collision = new PlayerCollisionResolver();
@@ -152,13 +153,14 @@ public final class CapeHandler {
 					float mass = 1;
 					if (y == 0 || (y == 1 && (x == 0 || x == width))) {
 						mass = 0;
-						res.add(new PinResolver(-(x - width * 0.5F) * scale, -y * scale));
+						res.add(new PlayerPinResolver(-(x - width * 0.5F) * scale, -y * scale));
 					}
 					if (y > 0 || x > 0) {
-						mass = 1 - (y / (float) height) * 0.1F;
+						float t = (float) y / height;
+						mass = 1 - t * 0.1F;
 						LinkResolver link = new LinkResolver();
 						if (y > 0) {
-							link.attach(points.get(x + (y - 1) * columns), scale, 1);
+							link.attach(points.get(x + (y - 1) * columns), scale, 2.0F + (1.95F - 2.0F) * t);
 						}
 						if (x > 0) {
 							link.attach(points.get(points.size() - 1), scale * (1 + y / (float) height * 0.1F), 1);
@@ -180,15 +182,19 @@ public final class CapeHandler {
 					}
 				}
 			}
-			return new RenderCape(ImmutableList.copyOf(points), ImmutableList.copyOf(quads));
+			points.sort((a, b) -> Double.compare(
+				MathHelper.sqrt(b.posX * b.posX + b.posY + b.posY),
+				MathHelper.sqrt(a.posX * a.posX + a.posY + a.posY)
+			));
+			return new RenderCape(ImmutableList.copyOf(points), quads.build());
 		}
 
-		private boolean hasCape(EntityPlayer player) {
+		private boolean isPresent(EntityPlayer player) {
 			return !BaublesSupport.getItem(player, ModItems.CAPE).isEmpty();
 		}
 
 		private void update(EntityPlayer player) {
-			if (hasCape(player)) {
+			if (isPresent(player)) {
 				updatePlayerPos(player);
 				updatePoints(player);
 				updateFluidCache(player);
@@ -196,28 +202,23 @@ public final class CapeHandler {
 		}
 
 		private void updatePlayerPos(EntityPlayer player) {
-			double dist = (playerPosX - player.posX) * (playerPosX - player.posX) +
-					(playerPosY - player.posY) * (playerPosY - player.posY) +
-					(playerPosZ - player.posZ) * (playerPosZ - player.posZ);
+			double dx = player.posX - posX;
+			double dy = player.posY - posY;
+			double dz = player.posZ - posZ;
+			double dist = dx * dx + dy * dy + dz * dz;
 			if (dist > PLAYER_SKIP_RANGE) {
-				double moveX = player.posX - playerPosX;
-				double moveY = player.posY - playerPosY;
-				double moveZ = player.posZ - playerPosZ;
 				for (Point point : points) {
-					point.posX += moveX;
-					point.posY += moveY;
-					point.posZ += moveZ;
-					point.lastPosX += moveX;
-					point.lastPosY += moveY;
-					point.lastPosZ += moveZ;
-					point.prevPosX += moveX;
-					point.prevPosY += moveY;
-					point.prevPosZ += moveZ;
+					point.posX += dx;
+					point.posY += dy;
+					point.posZ += dz;
+					point.prevPosX += dx;
+					point.prevPosY += dy;
+					point.prevPosZ += dz;
 				}
 			}
-			playerPosX = player.posX;
-			playerPosY = player.posY;
-			playerPosZ = player.posZ;
+			posX = player.posX;
+			posY = player.posY;
+			posZ = player.posZ;
 		}
 
 		private void updatePoints(EntityPlayer player) {
@@ -252,12 +253,6 @@ public final class CapeHandler {
 		}
 
 		private void render(EntityPlayer player, double x, double y, double z, float delta) {
-			if (!hasCape(player)) {
-				return;
-			}
-			if (player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).getItem() instanceof ItemElytra) {
-				return;
-			}
 			Tessellator tes = Tessellator.getInstance();
 			BufferBuilder buf = tes.getBuffer();
 			buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_NORMAL);
@@ -411,9 +406,6 @@ public final class CapeHandler {
 			private float posX;
 			private float posY;
 			private float posZ;
-			private float lastPosX;
-			private float lastPosY;
-			private float lastPosZ;
 			private float motionX;
 			private float motionY;
 			private float motionZ;
@@ -434,16 +426,13 @@ public final class CapeHandler {
 			}
 
 			private void update(World world, RenderCape cape, float delta) {
+				applyForce(0, cape.isFluid(world, posX, posY, posZ) ? FLUID_FORCE : GRAVITY, 0);
+				float x = posX + (posX - prevPosX) * 0.75F + motionX * 0.5F * (delta * delta);
+				float y = posY + (posY - prevPosY) * 0.75F + motionY * 0.5F * (delta * delta);
+				float z = posZ + (posZ - prevPosZ) * 0.75F + motionZ * 0.5F * (delta * delta);
 				prevPosX = posX;
 				prevPosY = posY;
 				prevPosZ = posZ;
-				applyForce(0, cape.isFluid(world, posX, posY, posZ) ? FLUID_FORCE : GRAVITY, 0);
-				float x = posX + (posX - lastPosX) * 0.75F + motionX * 0.5F * (delta * delta);
-				float y = posY + (posY - lastPosY) * 0.75F + motionY * 0.5F * (delta * delta);
-				float z = posZ + (posZ - lastPosZ) * 0.75F + motionZ * 0.5F * (delta * delta);
-				lastPosX = posX;
-				lastPosY = posY;
-				lastPosZ = posZ;
 				posX = x;
 				posY = y;
 				posZ = z;
@@ -457,12 +446,21 @@ public final class CapeHandler {
 			}
 		}
 
-		private static final class PinResolver implements ConstraintResolver {
+		private static abstract class PlayerResolver implements ConstraintResolver {
+			final float getBack(EntityPlayer player, float offset) {
+				if (player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).isEmpty()) {
+					return offset;
+				}
+				return offset + 0.075F;
+			}
+		}
+
+		private static final class PlayerPinResolver extends PlayerResolver {
 			private final float x;
 
 			private final float y;
 
-			private PinResolver(float x, float y) {
+			private PlayerPinResolver(float x, float y) {
 				this.x = x;
 				this.y = y;
 			}
@@ -474,10 +472,10 @@ public final class CapeHandler {
 				float back;
 				if (player.isSneaking()) {
 					height = 1.15F;
-					back = 0.135F;
+					back = getBack(player, 0.135F);
 				} else {
 					height = 1.38F;
-					back = 0.14F;
+					back = getBack(player, 0.14F);
 				}
 				float vx = MathHelper.cos(yaw) * x + MathHelper.cos(yaw - (float) Math.PI / 2) * back;
 				float vz = MathHelper.sin(yaw) * x + MathHelper.sin(yaw - (float) Math.PI / 2) * back;
@@ -518,15 +516,15 @@ public final class CapeHandler {
 				}
 
 				private void resolve(Point point) {
-					float dX = point.posX - dest.posX;
-					float dY = point.posY - dest.posY;
-					float dZ = point.posZ - dest.posZ;
-					float dist = MathHelper.sqrt(dX * dX + dY * dY + dZ * dZ);
+					float dx = point.posX - dest.posX;
+					float dy = point.posY - dest.posY;
+					float dz = point.posZ - dest.posZ;
+					float dist = MathHelper.sqrt(dx * dx + dy * dy + dz * dz);
 					float d = dist * (point.invMass + dest.invMass);
 					float diff = d < EPSILON ? length / 2 : (dist - length) / d;
-					float px = dX * diff * strength;
-					float py = dY * diff * strength;
-					float pz = dZ * diff * strength;
+					float px = dx * diff * strength;
+					float py = dy * diff * strength;
+					float pz = dz * diff * strength;
 					point.posX -= px * point.invMass;
 					point.posY -= py * point.invMass;
 					point.posZ -= pz * point.invMass;
@@ -537,7 +535,7 @@ public final class CapeHandler {
 			}
 		}
 
-		private static final class PlayerCollisionResolver implements ConstraintResolver {
+		private static final class PlayerCollisionResolver extends PlayerResolver {
 			@Override
 			public void resolve(EntityPlayer player, Point point) {
 				float yaw = (float) (Math.toRadians(player.renderYawOffset) - Math.PI / 2);
@@ -547,8 +545,9 @@ public final class CapeHandler {
 				float py = (float) player.posY + 0.56F;
 				float pz = (float) player.posZ;
 				if (player.isSneaking()) {
-					float backX = px + dx * 0.45F;
-					float backZ = pz + dz * 0.45F;
+					float dist = getBack(player, 0.45F);
+					float backX = px + dx * dist;
+					float backZ = pz + dz * dist;
 					float dy = 0.52F;
 					float len = MathHelper.sqrt(1 + dy * dy);
 					dx /= len;
@@ -560,7 +559,8 @@ public final class CapeHandler {
 				} else {
 					float rx = (point.posX - (float) player.posX) * MathHelper.cos(yaw + (float) Math.PI / 2) + (point.posZ - (float) player.posZ) * MathHelper.sin(yaw + (float) Math.PI / 2);
 					float a = 1 - (MathHelper.clamp(Math.abs(rx), 0.24F, 0.36F) - 0.24F) / (0.36F - 0.24F);
-					collideWithPlane(point, px + dx * 0.14F, py, pz + dz * 0.14F, dx, 0, dz, a);
+					float dist = getBack(player, 0.14F);
+					collideWithPlane(point, px + dx * dist, py, pz + dz * dist, dx, 0, dz, a);
 				}
 			}
 
@@ -571,9 +571,9 @@ public final class CapeHandler {
 			private void collideWithPlane(Point point, float px, float py, float pz, float nx, float ny, float nz, float amount) {
 				float d = getDistToPlane(point, px, py, pz, nx, ny, nz);
 				if (d < 0) {
-					point.posX += nx * -d * amount;
-					point.posY += ny * -d * amount;
-					point.posZ += nz * -d * amount;
+					point.posX -= nx * d * amount;
+					point.posY -= ny * d * amount;
+					point.posZ -= nz * d * amount;
 				}
 			}
 		}

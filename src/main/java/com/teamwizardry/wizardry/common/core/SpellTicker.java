@@ -7,7 +7,7 @@ import com.teamwizardry.wizardry.api.capability.world.WizardryWorldCapability;
 import com.teamwizardry.wizardry.api.spell.IDelayedModule;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
-import com.teamwizardry.wizardry.api.spell.module.Module;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
 import com.teamwizardry.wizardry.common.network.PacketSyncWizardryWorld;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
@@ -18,8 +18,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Iterator;
 
 /**
  * Created by Demoniaque.
@@ -45,36 +44,36 @@ public class SpellTicker {
 		World world = event.world;
 		WizardryWorld worldCap = WizardryWorldCapability.get(world);
 
-		Set<LingeringObject> tmp1 = new HashSet<>(worldCap.getLingeringObjects());
-		Set<DelayedObject> tmp2 = new HashSet<>(worldCap.getDelayedObjects());
-
 		boolean change = false;
 
-		for (LingeringObject lingeringObject : tmp1) {
+		Iterator<LingeringObject> lingering = worldCap.getLingeringObjects().iterator();
+		while (lingering.hasNext()) {
+			LingeringObject lingeringObject = lingering.next();
+
 			long fromWorldTime = lingeringObject.getWorldTime();
 			long currentWorldTime = event.world.getTotalWorldTime();
 			long subtract = currentWorldTime - fromWorldTime;
 
 			if (subtract > lingeringObject.getExpiry()) {
-				worldCap.getLingeringObjects().remove(lingeringObject);
+				lingering.remove();
 				change = true;
 				continue;
 			}
 
 			lingeringObject.getSpellRing().runSpellRing(lingeringObject.getSpellData().copy());
-
 		}
 
-		for (DelayedObject delayedObject : tmp2) {
+		Iterator<DelayedObject> delayed = worldCap.getDelayedObjects().iterator();
+		while (delayed.hasNext()) {
+			DelayedObject delayedObject = delayed.next();
+
 			long fromWorldTime = delayedObject.getWorldTime();
 			long currentWorldTime = event.world.getTotalWorldTime();
 			long subtract = currentWorldTime - fromWorldTime;
 
-			System.out.println(subtract + " / " + delayedObject.getExpiry());
 			if (subtract > delayedObject.getExpiry()) {
-				System.out.println("REEEEEEEEEEEEEEEEEEEEEE");
-				((IDelayedModule) delayedObject.getModule()).runDelayedEffect(delayedObject.getSpellData(), delayedObject.getSpellRing());
-				worldCap.getDelayedObjects().remove(delayedObject);
+				((IDelayedModule) delayedObject.getModule().getModuleClass()).runDelayedEffect(delayedObject.getSpellData(), delayedObject.getSpellRing());
+				delayed.remove();
 				change = true;
 			}
 		}
@@ -152,7 +151,7 @@ public class SpellTicker {
 
 	public static class DelayedObject implements INBTSerializable<NBTTagCompound> {
 
-		private Module module;
+		private ModuleInstance module;
 		private SpellRing spellRing;
 		private SpellData spellData;
 		private long worldTime;
@@ -161,7 +160,7 @@ public class SpellTicker {
 		@NotNull
 		private final World world;
 
-		public DelayedObject(Module module, SpellRing spellRing, SpellData spellData, long worldTime, int expiry) {
+		public DelayedObject(ModuleInstance module, SpellRing spellRing, SpellData spellData, long worldTime, int expiry) {
 			this.module = module;
 			this.spellRing = spellRing;
 			this.spellData = spellData;
@@ -196,7 +195,7 @@ public class SpellTicker {
 			return object;
 		}
 
-		public Module getModule() {
+		public ModuleInstance getModule() {
 			return module;
 		}
 
@@ -224,7 +223,7 @@ public class SpellTicker {
 			if (nbt.hasKey("expiry"))
 				expiry = nbt.getInteger("expiry");
 			if (nbt.hasKey("module"))
-				module = Module.deserialize(nbt.getString("module"));
+				module = ModuleInstance.deserialize(nbt.getString("module"));
 		}
 	}
 }

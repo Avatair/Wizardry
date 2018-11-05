@@ -4,19 +4,17 @@ import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
-import com.teamwizardry.wizardry.api.spell.module.ModuleEffect;
-import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
-import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.IModuleEffect;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceEffect;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseDuration;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreasePotency;
 import com.teamwizardry.wizardry.init.ModPotions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -36,8 +34,8 @@ import javax.annotation.Nonnull;
 /**
  * Created by Demoniaque.
  */
-@RegisterModule
-public class ModuleEffectTimeSlow extends ModuleEffect {
+@RegisterModule(ID="effect_time_slow")
+public class ModuleEffectTimeSlow implements IModuleEffect {
 
 	@SubscribeEvent
 	public static void skipTick(LivingEvent.LivingUpdateEvent event) {
@@ -64,20 +62,14 @@ public class ModuleEffectTimeSlow extends ModuleEffect {
 		}
 	}
 
-	@Nonnull
 	@Override
-	public String getID() {
-		return "effect_time_slow";
-	}
-
-	@Override
-	public ModuleModifier[] applicableModifiers() {
-		return new ModuleModifier[]{new ModuleModifierIncreasePotency(), new ModuleModifierIncreaseDuration()};
+	public String[] compatibleModifierClasses() {
+		return new String[]{"modifier_increase_potency", "modifier_extend_time"};
 	}
 
 	@Override
 	@SuppressWarnings("unused")
-	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public boolean run(ModuleInstanceEffect instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		BlockPos targetPos = spell.getTargetPos();
 		Entity targetEntity = spell.getVictim();
@@ -86,7 +78,7 @@ public class ModuleEffectTimeSlow extends ModuleEffect {
 		if (targetEntity instanceof EntityLivingBase) {
 			double potency = spellRing.getAttributeValue(AttributeRegistry.POTENCY, spell);
 			double duration = spellRing.getAttributeValue(AttributeRegistry.DURATION, spell) * 10;
-			if (!spellRing.taxCaster(spell)) return false;
+			if (!spellRing.taxCaster(spell, true)) return false;
 
 			((EntityLivingBase) targetEntity).addPotionEffect(new PotionEffect(ModPotions.TIME_SLOW, (int) duration, (int) potency, true, false));
 		}
@@ -95,33 +87,34 @@ public class ModuleEffectTimeSlow extends ModuleEffect {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(ModuleInstanceEffect instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		Vec3d position = spell.getTarget();
 
 		if (position == null) return;
 
 		ParticleBuilder glitter = new ParticleBuilder(30);
-		glitter.setColorFunction(new InterpColorHSV(getPrimaryColor(), getSecondaryColor()));
+		glitter.setColorFunction(new InterpColorHSV(instance.getPrimaryColor(), instance.getSecondaryColor()));
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-		glitter.disableRandom();
 		glitter.setScaleFunction(new InterpScale(1, 0));
 		glitter.setCollision(true);
 		glitter.enableMotionCalculation();
-		glitter.setAcceleration(new Vec3d(0, -0.001, 0));
+		glitter.setAcceleration(new Vec3d(0, RandUtil.nextBoolean() ? -0.0001 : 0.0001, 0));
+		glitter.disableRandom();
 
-		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(position.addVector(0, 1, 0)), 3, 0, (aFloat, particleBuilder) -> {
-			glitter.setLifetime(RandUtil.nextInt(30, 40));
-			glitter.setScale(RandUtil.nextFloat());
-			glitter.setAlphaFunction(new InterpFadeInOut(0.5f, RandUtil.nextFloat()));
+		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(position), 5, 0, (aFloat, particleBuilder) -> {
+			glitter.setLifetime(RandUtil.nextInt(40, 80));
+			glitter.setScaleFunction(new InterpScale(RandUtil.nextFloat(0.5f, 1f), 0f));
+			glitter.setAlphaFunction(new InterpFloatInOut(0.5f, 0.5f));
 
-			double radius = RandUtil.nextDouble(0, 1);
+			double radius = RandUtil.nextDouble(0, 2);
 			double theta = 2.0f * (float) Math.PI * RandUtil.nextFloat();
 			double r = radius * RandUtil.nextFloat();
 			double x = r * MathHelper.cos((float) theta);
 			double z = r * MathHelper.sin((float) theta);
 			Vec3d dest = new Vec3d(x, RandUtil.nextDouble(-radius, radius), z);
 			glitter.setPositionOffset(dest);
+			glitter.setMotion(new Vec3d(RandUtil.nextDouble(-0.001, 0.001), 0, RandUtil.nextDouble(-0.001, 0.001)));
 
 			//glitter.setPositionFunction(new InterpSlowDown(Vec3d.ZERO, new Vec3d(0, RandUtil.nextDouble(-1, 1), 0)));
 			//glitter.setPositionFunction(new InterpBezier3D(Vec3d.ZERO, position.subtract(dest), dest.scale(2), new Vec3d(position.x, radius, position.z)));

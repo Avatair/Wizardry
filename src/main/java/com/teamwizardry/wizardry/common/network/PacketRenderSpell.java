@@ -17,8 +17,8 @@ import javax.annotation.Nonnull;
  */
 public class PacketRenderSpell extends PacketBase {
 
-	private NBTTagCompound spellData;
-	private SpellRing spellRing;
+	public NBTTagCompound spellData;
+	public SpellRing spellRing;
 
 	public PacketRenderSpell() {
 	}
@@ -55,7 +55,7 @@ public class PacketRenderSpell extends PacketBase {
 		data.deserializeNBT(spellData);
 
 		if (spellRing.getModule() != null) {
-			spellRing.getModule().render(data, spellRing);
+			spellRing.getModule().renderSpell(data, spellRing);
 		}
 	}
 }

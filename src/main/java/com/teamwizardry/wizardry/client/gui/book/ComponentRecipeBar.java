@@ -1,7 +1,13 @@
 package com.teamwizardry.wizardry.client.gui.book;
 
+import com.teamwizardry.librarianlib.core.LibrarianLib;
 import com.teamwizardry.librarianlib.features.gui.component.GuiComponentEvents;
-import com.teamwizardry.librarianlib.features.gui.provided.book.ComponentBookMark;
+import com.teamwizardry.librarianlib.features.gui.provided.book.IBookGui;
+import com.teamwizardry.librarianlib.features.gui.provided.book.context.Bookmark;
+import com.teamwizardry.librarianlib.features.gui.provided.book.context.ComponentBookMark;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
@@ -14,49 +20,39 @@ public class ComponentRecipeBar extends ComponentBookMark {
 	public ComponentRecipeBar(@Nonnull GuiBook book, int id) {
 		super(book, SPELL_RECIPE_ICON, id, -2, -2);
 
-		setText("Spell Recipe");
-
-		clipping.setClipToBounds(true);
-
-		//ComponentText textTitle = new ComponentText(2, 1, ComponentText.TextAlignH.LEFT, ComponentText.TextAlignV.TOP);
-		//textTitle.setVisible(false);
-		//textTitle.getColor().setValue(Color.WHITE);
-		//textTitle.getText().setValue("Spell Recipe");
-		//add(textTitle);
-
-		//textTitle.BUS.hook(GuiComponentEvents.ComponentTickEvent.class, componentTickEvent -> {
-		//	textTitle.setPos(new Vec2d(getAnimX(), textTitle.getPos().getY()));
-		//});
+		setBookmarkText(LibrarianLib.PROXY.translate("wizardry.book.spell_recipe_recipe"), book.getBook().getSearchTextColor(), -5);
 
 		BUS.hook(GuiComponentEvents.MouseInEvent.class, mouseInEvent -> {
 			if (!focused) {
-				//	textTitle.setVisible(true);
 				slideOutShort();
 			}
 		});
 
 		BUS.hook(GuiComponentEvents.MouseOutEvent.class, mouseOutEvent -> {
 			if (!focused) {
-				//textTitle.setVisible(false);
 				slideIn();
 			}
 		});
 
 		BUS.hook(GuiComponentEvents.MouseClickEvent.class, mouseClickEvent -> {
 			if (focused) {
-				if (!book.getHistory().empty()) {
-					book.forceInFocus(book.getHistory().pop());
-				}
-				//	textTitle.setVisible(false);
-				slideIn();
+				book.up();
+				slideOutShort();
 				focused = false;
 			} else {
-				//	textTitle.setVisible(true);
-				book.placeInFocus(new ComponentSpellRecipe(book));
+				book.placeInFocus(new ComponentSpellRecipe(book.getBook()));
 				slideIn();
-				focused = false;
+				focused = true;
 			}
 		});
+	}
 
+	public static class RecipeBookmark implements Bookmark {
+		@NotNull
+		@Override
+		@SideOnly(Side.CLIENT)
+		public ComponentBookMark createBookmarkComponent(@NotNull IBookGui book, int bookmarkIndex) {
+			return new ComponentRecipeBar((GuiBook) book, bookmarkIndex);
+		}
 	}
 }

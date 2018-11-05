@@ -1,23 +1,22 @@
 package com.teamwizardry.wizardry.common.module.effects;
 
 import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpLine;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.ProcessData;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
-import com.teamwizardry.wizardry.api.spell.module.ModuleEffect;
-import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
-import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.IModuleEffect;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceEffect;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import com.teamwizardry.wizardry.init.ModPotions;
 import kotlin.Pair;
 import net.minecraft.entity.Entity;
@@ -41,8 +40,8 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.constructPair;
  * Created by Demoniaque.
  */
 // TODO: Tracer's blink sound effect
-@RegisterModule
-public class ModuleEffectZoom extends ModuleEffect {
+@RegisterModule(ID="effect_zoom")
+public class ModuleEffectZoom implements IModuleEffect {
 
 	private static final Pair<String, Class<Vec3d>> ORIGINAL_LOC = constructPair("original_loc", Vec3d.class, new ProcessData.Process<NBTTagCompound, Vec3d>() {
 		@Nonnull
@@ -64,19 +63,13 @@ public class ModuleEffectZoom extends ModuleEffect {
 		}
 	});
 
-	@Nonnull
 	@Override
-	public String getID() {
-		return "effect_zoom";
+	public String[] compatibleModifierClasses() {
+		return new String[]{"modifier_extend_range"};
 	}
 
 	@Override
-	public ModuleModifier[] applicableModifiers() {
-		return new ModuleModifier[]{new ModuleModifierIncreaseRange()};
-	}
-
-	@Override
-	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public boolean run(ModuleInstanceEffect instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		Entity entityHit = spell.getVictim();
 		Vec3d look = spell.getData(LOOK);
@@ -84,14 +77,14 @@ public class ModuleEffectZoom extends ModuleEffect {
 
 		if (entityHit == null) return true;
 		else {
-			if (!spellRing.taxCaster(spell)) return false;
+			if (!spellRing.taxCaster(spell, true)) return false;
 
 			if (look == null) return true;
 			if (origin == null) return true;
 
 			double range = spellRing.getAttributeValue(AttributeRegistry.RANGE, spell);
 			RayTraceResult trace = new RayTrace(world, look, origin, range)
-					.setSkipEntity(entityHit)
+					.setEntityFilter(input -> input != entityHit)
 					.setIgnoreBlocksWithoutBoundingBoxes(true)
 					.setReturnLastUncollidableBlock(false)
 					.trace();
@@ -115,7 +108,7 @@ public class ModuleEffectZoom extends ModuleEffect {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+	public void renderSpell(ModuleInstanceEffect instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 
 		Entity entity = spell.getVictim();
@@ -128,7 +121,7 @@ public class ModuleEffectZoom extends ModuleEffect {
 
 		ParticleBuilder glitter = new ParticleBuilder(10);
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-		glitter.setAlphaFunction(new InterpFadeInOut(0.0f, 0.3f));
+		glitter.setAlphaFunction(new InterpFloatInOut(0.0f, 0.3f));
 
 		glitter.enableMotionCalculation();
 		glitter.disableRandom();
@@ -141,18 +134,18 @@ public class ModuleEffectZoom extends ModuleEffect {
 				particle.setAcceleration(Vec3d.ZERO);
 			}
 		});
-		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(origin.addVector(0, entity.height / 2.0, 0)), 10, 0, (aFloat, particleBuilder) -> {
+		ParticleSpawner.spawn(glitter, world, new StaticInterp<>(origin.add(0, entity.height / 2.0, 0)), 10, 0, (aFloat, particleBuilder) -> {
 			glitter.setPositionOffset(new Vec3d(
 					RandUtil.nextDouble(-0.5, 0.5),
 					RandUtil.nextDouble(-0.5, 0.5),
 					RandUtil.nextDouble(-0.5, 0.5)
 			));
-			ParticleSpawner.spawn(glitter, world, new InterpLine(origin.add(particleBuilder.getPositionOffset()), to.add(particleBuilder.getPositionOffset()).addVector(0, entity.height / 2.0, 0)), (int) origin.distanceTo(to) * 5, 0, (aFloat2, particleBuilder2) -> {
+			ParticleSpawner.spawn(glitter, world, new InterpLine(origin.add(particleBuilder.getPositionOffset()), to.add(particleBuilder.getPositionOffset()).add(0, entity.height / 2.0, 0)), (int) origin.distanceTo(to) * 5, 0, (aFloat2, particleBuilder2) -> {
 				glitter.setAlpha(RandUtil.nextFloat(0.5f, 0.8f));
 				glitter.setScale(RandUtil.nextFloat(0.3f, 0.6f));
 				glitter.setLifetime(RandUtil.nextInt(30, 50));
-				glitter.setColorFunction(new InterpColorHSV(getPrimaryColor(), getSecondaryColor()));
-				glitter.setAlphaFunction(new InterpFadeInOut(0f, 1f));
+				glitter.setColorFunction(new InterpColorHSV(instance.getPrimaryColor(), instance.getSecondaryColor()));
+				glitter.setAlphaFunction(new InterpFloatInOut(0f, 1f));
 			});
 		});
 	}

@@ -1,6 +1,9 @@
 package com.teamwizardry.wizardry.api;
 
+import com.teamwizardry.librarianlib.features.math.interpolate.InterpFunction;
+import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpLine;
 import com.teamwizardry.wizardry.api.util.RandUtilSeed;
+import com.teamwizardry.wizardry.api.util.TreeNode;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
@@ -9,58 +12,62 @@ import java.util.Collections;
 /**
  * Created by Demoniaque.
  */
-public class LightningGenerator {
+public class LightningGenerator
+{
+	public static final int POINTS_PER_DIST = 3;
+	public static final float ANGLE_OFFSET = 22.5f;
+	public static final float ANGLE_OFFSET_RADS = (float)Math.toRadians(ANGLE_OFFSET);
+	public static final int MAX_BRANCHES = 2;
 
-	public static final int POINTS_PER_DIST = 6;
-
-	private Vec3d point1;
-	private Vec3d point2;
-	private RandUtilSeed rand;
-
-	public LightningGenerator(Vec3d point1, Vec3d point2, RandUtilSeed rand) {
-		this.point1 = point1;
-		this.point2 = point2;
-		this.rand = rand;
+	public static TreeNode<Vec3d> generate(RandUtilSeed rand, Vec3d from, Vec3d to, double offshootRange)
+	{
+		TreeNode<Vec3d> root = new TreeNode<>(from);
+		
+		generateOffshoot(rand, root, to, offshootRange, MAX_BRANCHES);
+		
+		return root;
 	}
+	
+	private static TreeNode<Vec3d> generateOffshoot(RandUtilSeed rand, TreeNode<Vec3d> from, Vec3d to, double offshootRange, int numBranchesLeft)
+	{
+		if (numBranchesLeft < 0)
+			return from;
+		
+		TreeNode<Vec3d> bolt = from;
 
-	public ArrayList<Vec3d> generate() {
-		ArrayList<Vec3d> results = new ArrayList<>();
-		Vec3d sub = point2.subtract(point1);
-		Vec3d normal = sub.normalize();
-		double dist = sub.lengthVector();
-
+		InterpFunction<Vec3d> interp = new InterpLine(from.getData(), to);
 		ArrayList<Float> points = new ArrayList<>();
-		points.add(0f);
-		for (int i = 0; i < dist * POINTS_PER_DIST; i++) {
+
+		double dist = to.subtract(from.getData()).length();
+		
+		points.add(1f);
+		for (int i = 0; i < dist * POINTS_PER_DIST; i++)
 			points.add(rand.nextFloat());
-		}
 
 		Collections.sort(points);
 
-		for (int i = 1; i < points.size(); i++) {
-
-			float point = points.get(i);
-			Vec3d vec = sub.scale(point);
-
-			double scale = dist * 0.01 + (point - (points.get(i - 1)));
-
-			vec = new Vec3d(
-					vec.x + rand.nextDouble(-scale, scale),
-					vec.y + rand.nextDouble(-scale, scale),
-					vec.z + rand.nextDouble(-scale, scale)
-			);
-
-			if (rand.nextInt(10) == 0) {
-				float angle = 20;
-				Vec3d offset = normal.rotateYaw(rand.nextFloat(-angle, angle)).rotatePitch(rand.nextFloat(-angle, angle));
-
-				results.addAll(new LightningGenerator(point1.add(vec), point1.add(vec).add(offset), rand).generate());
+		for (float point : points)
+		{
+			float pitchOff = rand.nextFloat(-ANGLE_OFFSET_RADS, ANGLE_OFFSET_RADS);
+			float yawOff = rand.nextFloat(-ANGLE_OFFSET_RADS, ANGLE_OFFSET_RADS);
+			Vec3d newPoint = interp.get(point);
+			
+			Vec3d diff = newPoint.subtract(bolt.getData());
+			Vec3d norm = diff.normalize();
+			Vec3d dir = norm.rotatePitch(pitchOff).rotateYaw(yawOff).normalize();
+			
+			newPoint = dir.scale(norm.dotProduct(diff) / norm.dotProduct(dir)).add(bolt.getData());
+			
+			bolt = bolt.addChild(new TreeNode<>(newPoint));
+			while (rand.nextInt(10) == 0)
+			{
+				double scale = rand.nextDouble(offshootRange/2, offshootRange);
+				float pitch = rand.nextFloat(ANGLE_OFFSET_RADS/2, 3*ANGLE_OFFSET_RADS/2) * (rand.nextBoolean() ? 1 : -1);
+				float yaw = rand.nextFloat(ANGLE_OFFSET_RADS/2, 3*ANGLE_OFFSET_RADS/2) * (rand.nextBoolean() ? 1 : -1);
+				Vec3d newTo = bolt.getData().subtract(from.getData()).rotatePitch(pitch).rotateYaw(yaw).normalize().scale(scale).add(bolt.getData());
+				LightningGenerator.generateOffshoot(rand, bolt, newTo, scale, numBranchesLeft-1);
 			}
-
-			results.add(point1.add(vec));
 		}
-
-		results.add(point2);
-		return results;
+		return from;
 	}
 }

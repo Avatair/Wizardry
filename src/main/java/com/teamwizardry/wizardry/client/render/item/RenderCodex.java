@@ -9,7 +9,7 @@ import com.teamwizardry.librarianlib.features.sprite.Sprite;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellUtils;
-import com.teamwizardry.wizardry.api.spell.module.Module;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.client.gui.book.GuiBook;
 import com.teamwizardry.wizardry.init.ModItems;
@@ -106,7 +106,7 @@ public class RenderCodex {
 		try {
 			renderItemInFirstPerson(mc.player, evt.getHand(), evt.getSwingProgress(), evt.getItemStack(), evt.getEquipProgress());
 		} catch (Throwable throwable) {
-			Wizardry.logger.warn("Failed to render book in hand");
+			Wizardry.logger.warn("Failed to renderSpell book in hand");
 		}
 	}
 
@@ -290,8 +290,9 @@ public class RenderCodex {
 				// Draw tooltip above page here
 				if (rightHand) {
 					GlStateManager.pushMatrix();
-					GlStateManager.translate(0, -20, -30);
-					drawTooltip(LibrarianLib.PROXY.translate("wizardry.book.shift_scroll"), font);
+					GlStateManager.translate(-30, -25, -30);
+					drawTooltip(font, LibrarianLib.PROXY.translate("wizardry.book.shift_scroll"),
+							LibrarianLib.PROXY.translate("wizardry.book.open_recipe_tab"));
 					GlStateManager.popMatrix();
 				}
 
@@ -318,7 +319,8 @@ public class RenderCodex {
 
 				// Draw tooltip above page here
 				if (!rightHand)
-					drawTooltip(LibrarianLib.PROXY.translate("wizardry.book.shift_scroll"), font);
+					drawTooltip(font, LibrarianLib.PROXY.translate("wizardry.book.shift_scroll"),
+							LibrarianLib.PROXY.translate("wizardry.book.open_recipe_tab"));
 
 				List<ItemStack> inventory = getSpellInventory(stack);
 				int currentPage = ItemNBTHelper.getInt(stack, "page", 0);
@@ -379,7 +381,7 @@ public class RenderCodex {
 		GlStateManager.popMatrix();
 	}
 
-	public void drawTooltip(String text, FontRenderer font) {
+	public void drawTooltip(FontRenderer font, String... text) {
 		GlStateManager.pushMatrix();
 
 		GlStateManager.translate(0, -25, 0);
@@ -397,8 +399,14 @@ public class RenderCodex {
 		//color = new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (tooltipCooldown / 40.0 * 255.0));
 		//backgroundColor = color.getRGB();
 
-		int tooltipTextWidth = font.getStringWidth(text);
-		int tooltipHeight = 8;
+		int longestWidth = 0;
+		for (String string : text) {
+			int width = font.getStringWidth(string);
+			if (width > longestWidth) longestWidth = width;
+		}
+
+		int tooltipTextWidth = longestWidth;
+		int tooltipHeight = 8 * text.length;
 		GuiUtils.drawGradientRect(0, 0 - 3, 0 - 4, tooltipTextWidth + 3, 0 - 3, backgroundColor, backgroundColor);
 		GuiUtils.drawGradientRect(0, 0 - 3, tooltipHeight + 3, tooltipTextWidth + 3, tooltipHeight + 4, backgroundColor, backgroundColor);
 		GuiUtils.drawGradientRect(0, 0 - 3, 0 - 3, tooltipTextWidth + 3, tooltipHeight + 3, backgroundColor, backgroundColor);
@@ -411,7 +419,11 @@ public class RenderCodex {
 		GuiUtils.drawGradientRect(0, 0 - 3, 0 - 3, tooltipTextWidth + 3, 0 - 3 + 1, borderColorStart, borderColorStart);
 		GuiUtils.drawGradientRect(0, 0 - 3, tooltipHeight + 2, tooltipTextWidth + 3, tooltipHeight + 3, borderColorEnd, borderColorEnd);
 
-		font.drawStringWithShadow(text, 0, 0, 0xFFD700);
+		for (int i = 0; i < text.length; i++) {
+			String string = text[i];
+			font.drawStringWithShadow(string, 0, i * 8, 0xFFD700);
+		}
+
 		font.setUnicodeFlag(previousUnicode);
 
 		GlStateManager.enableDepth();
@@ -444,7 +456,7 @@ public class RenderCodex {
 		NBTTagList moduleList = ItemNBTHelper.getList(stack, Constants.NBT.SPELL, net.minecraftforge.common.util.Constants.NBT.TAG_STRING);
 		if (moduleList == null) return new String[0];
 
-		List<List<Module>> spellModules = SpellUtils.deserializeModuleList(moduleList);
+		List<List<ModuleInstance>> spellModules = SpellUtils.deserializeModuleList(moduleList);
 		spellModules = SpellUtils.getEssentialModules(spellModules);
 		int page = ItemNBTHelper.getInt(stack, "page", 0);
 
@@ -452,9 +464,9 @@ public class RenderCodex {
 
 		int widthOfSpace = fr.getStringWidth(" ");
 		StringBuilder builder = new StringBuilder("Spell Structure:\n");
-		for (List<Module> spellModuleList : spellModules) {
+		for (List<ModuleInstance> spellModuleList : spellModules) {
 			String margin = null;
-			for (Module module : spellModuleList) {
+			for (ModuleInstance module : spellModuleList) {
 				if (margin == null) {
 					margin = " - ";
 					builder.append(margin).append(module.getReadableName()).append("\n");

@@ -5,8 +5,11 @@ import com.teamwizardry.librarianlib.features.base.item.ItemMod;
 import com.teamwizardry.librarianlib.features.helpers.ItemNBTHelper;
 import com.teamwizardry.librarianlib.features.utilities.client.TooltipHelper;
 import com.teamwizardry.wizardry.api.capability.mana.CapManager;
+import com.teamwizardry.wizardry.common.block.fluid.ModFluids;
 import com.teamwizardry.wizardry.common.core.DamageSourceMana;
 import com.teamwizardry.wizardry.init.ModPotions;
+import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
@@ -16,10 +19,14 @@ import net.minecraft.item.EnumAction;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,47 +65,65 @@ public class ItemSyringe extends ItemMod {
 
 	@Override
 	public int getMaxItemUseDuration(ItemStack stack) {
-		return 60;
+		return 30;
 	}
 
 	@Override
 	public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
 		if (!(player instanceof EntityPlayer)) return;
+		if (player.world.isRemote) return;
+
 		if (count <= 1) {
 			player.swingArm(player.getActiveHand());
-			((EntityPlayer) player).getCooldownTracker().setCooldown(this, stack.getItemDamage() == 1 ? 100 : 500);
+			((EntityPlayer) player).getCooldownTracker().setCooldown(this, stack.getItemDamage() == 1 ? 100 : 300);
 
 			if (stack.getItemDamage() == 2) {
 				player.addPotionEffect(new PotionEffect(ModPotions.STEROID, 500, 0, true, false));
 				stack.setItemDamage(0);
 			} else if (stack.getItemDamage() == 1) {
-				CapManager manager = new CapManager(player);
-				manager.addMana(manager.getMaxMana() / 2);
+				CapManager.forObject(player)
+						.addMana(CapManager.getMaxMana(player) / 1.5)
+						.close();
 				player.attackEntityFrom(DamageSourceMana.INSTANCE, 2);
 				stack.setItemDamage(0);
 			} else if (stack.getItemDamage() == 0) {
-				player.attackEntityFrom(DamageSource.causePlayerDamage((EntityPlayer) player), 2);
-				stack.setItemDamage(3);
-				ItemNBTHelper.setUUID(stack, "uuid", player.getUniqueID());
+
+				RayTraceResult raytraceresult = this.rayTrace(player.world, (EntityPlayer) player, true);
+
+				if (raytraceresult != null && raytraceresult.typeOfHit != null && raytraceresult.typeOfHit == RayTraceResult.Type.BLOCK) {
+					BlockPos blockpos = raytraceresult.getBlockPos();
+					if (raytraceresult.sideHit == null) raytraceresult.sideHit = EnumFacing.UP;
+
+					if (player.world.isBlockModifiable((EntityPlayer) player, blockpos)
+							&& ((EntityPlayer) player).canPlayerEdit(blockpos.offset(raytraceresult.sideHit), raytraceresult.sideHit, stack)) {
+
+						IBlockState iblockstate = player.world.getBlockState(blockpos);
+
+						Fluid fluid = FluidRegistry.lookupFluidForBlock(iblockstate.getBlock());
+						if (fluid != null && fluid == ModFluids.MANA && iblockstate.getValue(BlockLiquid.LEVEL) == 0) {
+							stack.setItemDamage(1);
+						}
+					}
+				}
 			}
 		}
 	}
 
 	@Override
 	public boolean onLeftClickEntity(ItemStack stack, EntityPlayer player, Entity entity) {
-		if (stack.getItemDamage() == 0) {
-			entity.attackEntityFrom(DamageSource.causePlayerDamage(player), 2);
-			stack.setItemDamage(3);
-			if (entity instanceof EntityPlayer)
-				ItemNBTHelper.setUUID(stack, "uuid", entity.getUniqueID());
-			else ItemNBTHelper.setString(stack, "entity", entity.getName());
-		}
+		//if (stack.getItemDamage() == 0) {
+		//	entity.attackEntityFrom(DamageSource.causePlayerDamage(player), 2);
+		//	stack.setItemDamage(3);
+		//	if (entity instanceof EntityPlayer)
+		//		ItemNBTHelper.setUUID(stack, "uuid", entity.getUniqueID());
+		//	else ItemNBTHelper.setString(stack, "entity", entity.getName());
+		//}
 		return false;
 	}
 
 	@Override
 	public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		String desc = stack.getUnlocalizedName() + ".desc";
+		String desc = stack.getTranslationKey() + ".desc";
 		String used = LibrarianLib.PROXY.canTranslate(desc) ? desc : desc + "0";
 		if (LibrarianLib.PROXY.canTranslate(used)) {
 			TooltipHelper.addToTooltip(tooltip, used);

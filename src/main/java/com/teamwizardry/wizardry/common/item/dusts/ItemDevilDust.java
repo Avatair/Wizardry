@@ -38,12 +38,12 @@ public class ItemDevilDust extends ItemMod implements IPickupAchievement {
 		//Vec3d origin;
 		//float offX = 0.5f * (float) Math.sin(Math.toRadians(-90.0f - playerIn.rotationYaw));
 		//float offZ = 0.5f * (float) Math.cos(Math.toRadians(-90.0f - playerIn.rotationYaw));
-		//origin = new Vec3d(offX, 0, offZ).add(playerIn.getPositionVector().addVector(0, playerIn.height / 2, 0));
+		//origin = new Vec3d(offX, 0, offZ).add(playerIn.getPositionVector().add(0, playerIn.height / 2, 0));
 //
 		//List<Entity> entityList = worldIn.getEntitiesWithinAABBExcludingEntity(playerIn, new AxisAlignedBB(playerIn.getPosition()).grow(5, 5, 5));
 //
 		//for (Entity entity : entityList) {
-		//	if (Utils.isLyingInCone(entity.getPositionVector().addVector(0, entity.height / 2, 0), origin, origin.add(playerIn.getLook(0).scale(10)), (float) Math.toRadians(90))) {
+		//	if (Utils.isLyingInCone(entity.getPositionVector().add(0, entity.height / 2, 0), origin, origin.add(playerIn.getLook(0).scale(10)), (float) Math.toRadians(90))) {
 		//		entity.setFire(100);
 		//	}
 		//}
@@ -55,7 +55,7 @@ public class ItemDevilDust extends ItemMod implements IPickupAchievement {
 		//		ParticleBuilder glitter = new ParticleBuilder(10);
 		//		glitter.setColor(Color.ORANGE);
 		//		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
-		//		glitter.setAlphaFunction(new InterpFadeInOut(0.2f, 1f));
+		//		glitter.setAlphaFunction(new InterpFloatInOut(0.2f, 1f));
 //
 		//		ParticleSpawner.spawn(glitter, worldIn, new StaticInterp<>(origin), RandUtil.nextInt(30, 40), 0, (i, build) -> {
 		//			glitter.setMotion(playerIn.getLook(0).scale(3));

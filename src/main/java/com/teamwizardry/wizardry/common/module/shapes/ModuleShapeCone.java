@@ -4,21 +4,19 @@ import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpLi
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
-import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
-import com.teamwizardry.wizardry.api.spell.module.ModuleShape;
-import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.util.PosUtils;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreasePotency;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.RayTraceResult;
@@ -35,18 +33,12 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
 /**
  * Created by Demoniaque.
  */
-@RegisterModule
-public class ModuleShapeCone extends ModuleShape {
-
-	@Nonnull
-	@Override
-	public String getID() {
-		return "shape_cone";
-	}
+@RegisterModule(ID="shape_cone")
+public class ModuleShapeCone implements IModuleShape {
 
 	@Override
-	public ModuleModifier[] applicableModifiers() {
-		return new ModuleModifier[]{new ModuleModifierIncreasePotency(), new ModuleModifierIncreaseRange()};
+	public String[] compatibleModifierClasses() {
+		return new String[]{"modifier_increase_potency", "modifier_extend_range"};
 	}
 
 	@Override
@@ -55,42 +47,43 @@ public class ModuleShapeCone extends ModuleShape {
 	}
 
 	@Override
-	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (runRunOverrides(spell, spellRing)) return true;
-
+	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 		float yaw = spell.getData(YAW, 0F);
 		float pitch = spell.getData(PITCH, 0F);
-		Vec3d position = spell.getData(ORIGIN);
 		Entity caster = spell.getCaster();
 
-		if (position == null) return false;
-
+		Vec3d origin = spell.getOriginHand();
+		if (origin == null) return false;
+		
 		double range = spellRing.getAttributeValue(AttributeRegistry.RANGE, spell);
 		int potency = (int) (spellRing.getAttributeValue(AttributeRegistry.POTENCY, spell));
-		
-		Vec3d origin = spell.getOriginHand();
-
-		if (origin == null) return false;
-
 
 		for (int i = 0; i < potency; i++) {
 
-			double angle = range * 2;
-			float newPitch = (float) (pitch + RandUtil.nextDouble(-angle, angle));
-			float newYaw = (float) (yaw + RandUtil.nextDouble(-angle, angle));
+			if (!spellRing.taxCaster(spell, 1.0 / potency, true)) return false;
+			
+			long seed = RandUtil.nextLong(100, 10000);
+			spell.addData(SEED, seed);
+			instance.runRunOverrides(spell, spellRing);
+			
+			float angle = (float) range * 2;
+			float newPitch = pitch + RandUtil.nextFloat(-angle, angle);
+			float newYaw = yaw + RandUtil.nextFloat(-angle, angle);
 
 			Vec3d target = PosUtils.vecFromRotations(newPitch, newYaw);
 
 			SpellData newSpell = spell.copy();
 
-			RayTraceResult result = new RayTrace(world, target.normalize(), origin, range).setSkipEntity(caster).trace();
+			RayTraceResult result = new RayTrace(world, target.normalize(), origin, range)
+					.setEntityFilter(input -> input != caster)
+					.trace();
 
 			Vec3d lookFallback = spell.getData(LOOK);
 			if (lookFallback != null) lookFallback.scale(range);
 			newSpell.processTrace(result, lookFallback);
 
-			sendRenderPacket(newSpell, spellRing);
+			instance.sendRenderPacket(newSpell, spellRing);
 
 			newSpell.addData(ORIGIN, result.hitVec);
 
@@ -104,8 +97,8 @@ public class ModuleShapeCone extends ModuleShape {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (runRenderOverrides(spell, spellRing)) return;
+	public void renderSpell(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+		if (instance.runRenderOverrides(spell, spellRing)) return;
 
 		Vec3d target = spell.getTarget();
 
@@ -119,7 +112,7 @@ public class ModuleShapeCone extends ModuleShape {
 		lines.setScaleFunction(new InterpScale(0.5f, 0));
 		lines.setColorFunction(new InterpColorHSV(spellRing.getPrimaryColor(), spellRing.getSecondaryColor()));
 		ParticleSpawner.spawn(lines, spell.world, new InterpLine(origin, target), (int) target.distanceTo(origin) * 4, 0, (aFloat, particleBuilder) -> {
-			lines.setAlphaFunction(new InterpFadeInOut(0.3f, 0.3f));
+			lines.setAlphaFunction(new InterpFloatInOut(0.3f, 0.3f));
 			lines.setLifetime(RandUtil.nextInt(10, 20));
 		});
 	}

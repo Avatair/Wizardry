@@ -1,14 +1,19 @@
 package com.teamwizardry.wizardry.api.util;
 
 import com.mojang.authlib.GameProfile;
+import com.teamwizardry.wizardry.init.ModBlocks;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumFacing.Axis;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeHooks;
@@ -20,7 +25,8 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Created by Demoniaque.
@@ -32,6 +38,19 @@ public final class BlockUtils {
 	private final static GameProfile placer = new GameProfile(uuid, "Wizardry Block Placer");
 
 	private BlockUtils() {
+	}
+
+	public static boolean isAnyAir(IBlockState state) {
+		return state.getBlock() == Blocks.AIR || state.getBlock() == ModBlocks.FAKE_AIR;
+	}
+
+	public static boolean isAnyAir(World world, BlockPos pos) {
+		IBlockState state = world.getBlockState(pos);
+		return state.getBlock() == Blocks.AIR || state.getBlock() == ModBlocks.FAKE_AIR;
+	}
+
+	public static boolean isAnyAir(Block block) {
+		return block == Blocks.AIR || block == ModBlocks.FAKE_AIR;
 	}
 
 	/**
@@ -123,10 +142,67 @@ public final class BlockUtils {
 	public static boolean hasEditPermission(@Nonnull BlockPos pos, @Nonnull EntityPlayerMP player) {
 		if (FMLCommonHandler.instance().getMinecraftServerInstance().isBlockProtected(player.getEntityWorld(), pos, player))
 			return false;
-
+		IBlockState block = player.getEntityWorld().getBlockState(pos);
+		if(block.getBlockHardness(player.getEntityWorld(), pos) == -1.0F && !player.capabilities.isCreativeMode) return false;
 		for (EnumFacing e : EnumFacing.VALUES)
 			if (!player.canPlayerEdit(pos, e, player.getHeldItemMainhand()))
 				return false;
 		return true;
 	}
+
+	public static Set<BlockPos> blocksInSquare(BlockPos center, Axis axis, int maxBlocks, int maxRange, Predicate<BlockPos> ignore)
+	{	
+		Set<BlockPos> blocks = new HashSet<>();
+		if (ignore.test(center)) return blocks;
+		blocks.add(center);
+		if (blocks.size() >= maxBlocks) return blocks;
+		
+		Queue<BlockPos> blockQueue = new LinkedList<>();
+		blockQueue.add(center);
+		
+		while (!blockQueue.isEmpty())
+		{
+			BlockPos pos = blockQueue.remove();
+			
+			for (EnumFacing facing : EnumFacing.VALUES)
+			{
+				if (facing.getAxis() == axis)
+					continue;
+				BlockPos shift = pos.offset(facing);
+				if (shift.getX() - center.getX() > maxRange || center.getX() - shift.getX() > maxRange)
+					continue;
+				if (shift.getY() - center.getY() > maxRange || center.getY() - shift.getY() > maxRange)
+					continue;
+				if (shift.getZ() - center.getZ() > maxRange || center.getZ() - shift.getZ() > maxRange)
+					continue;
+				if (blocks.contains(shift))
+					continue;
+				if (ignore.test(shift))
+					continue;
+				blocks.add(shift);
+				blockQueue.add(shift);
+				if (blocks.size() >= maxBlocks)
+					break;
+			}
+			
+			if (blocks.size() >= maxBlocks)
+				break;
+		}
+		
+		return blocks;
+	}
+	
+	public static Set<BlockPos> blocksInSquare(BlockPos center, EnumFacing facing, int maxBlocks, int maxRange, Predicate<BlockPos> ignore)
+	{
+		return blocksInSquare(center, facing.getAxis(), maxBlocks, maxRange, ignore);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static <T extends TileEntity> T getTileEntity(IBlockAccess world, BlockPos pos, Class<T> clazz) {
+		TileEntity te = world.getTileEntity(pos);
+		if( !clazz.isInstance(te) )
+			return null;
+		return (T)te;
+	}
+
 }

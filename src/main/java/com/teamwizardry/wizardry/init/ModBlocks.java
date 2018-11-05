@@ -42,6 +42,7 @@ public class ModBlocks {
 	public static BlockWisdomWoodFence WISDOM_WOOD_FENCE;
 	public static BlockWisdomWoodFenceGate WISDOM_WOOD_FENCE_GATE;
 	public static BlockWisdomWoodPigmentedPlanks WISDOM_WOOD_PIGMENTED_PLANKS;
+	public static BlockWisdomSapling WISDOM_SAPLING;
 
 	public static BlockTorikkiGrass TORIKKI_GRASS;
 
@@ -77,6 +78,7 @@ public class ModBlocks {
 		WISDOM_WOOD_FENCE = new BlockWisdomWoodFence();
 		WISDOM_WOOD_FENCE_GATE = new BlockWisdomWoodFenceGate();
 		WISDOM_WOOD_PIGMENTED_PLANKS = new BlockWisdomWoodPigmentedPlanks();
+		WISDOM_SAPLING = new BlockWisdomSapling();
 
 		TORIKKI_GRASS = new BlockTorikkiGrass();
 
@@ -86,10 +88,10 @@ public class ModBlocks {
 	@SubscribeEvent
 	public static void remapFluids(RegistryEvent.MissingMappings<Block> event) {
 		event.getMappings().stream()
-				.filter(mapping -> mapping.key.getResourcePath().equals("mana"))
+				.filter(mapping -> mapping.key.getPath().equals("mana"))
 				.forEach(mapping -> mapping.remap(ModFluids.MANA.getActualBlock()));
 		event.getMappings().stream()
-				.filter(mapping -> mapping.key.getResourcePath().equals("nacre"))
+				.filter(mapping -> mapping.key.getPath().equals("nacre"))
 				.forEach(mapping -> mapping.remap(ModFluids.NACRE.getActualBlock()));
 	}
 

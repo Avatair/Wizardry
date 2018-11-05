@@ -17,10 +17,17 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class WizardryTransformer implements IClassTransformer {
 
+	private static final String CLASS_BLOCK = "net/minecraft/block/Block";
+	private static final String CLASS_BLOCK_POS = "net/minecraft/util/math/BlockPos";
+	private static final String CLASS_BLOCK_STATE = "net/minecraft/block/state/IBlockState";
+	private static final String CLASS_BLOCK_ACCESS = "net/minecraft/world/IBlockAccess";
 	private static final String CLASS_ENTITY_PLAYER = "net/minecraft/entity/player/EntityPlayer";
 	private static final String CLASS_ENTITY = "net/minecraft/entity/Entity";
 	private static final String CLASS_ENTITY_LIVING_BASE = "net/minecraft/entity/EntityLivingBase";
 	private static final String CLASS_MOVER_TYPE = "net/minecraft/entity/MoverType";
+	private static final String CLASS_EVENT = "net/minecraftforge/fml/common/eventhandler/Event";
+	private static final String CLASS_MOVE_EVENT = "com/teamwizardry/wizardry/api/events/EntityMoveEvent";
+	private static final String CLASS_TRAVEL_EVENT = "com/teamwizardry/wizardry/api/events/EntityTravelEvent";
 
 	private static final String ASM_HOOKS = "com/teamwizardry/wizardry/asm/WizardryASMHooks";
 
@@ -75,18 +82,30 @@ public class WizardryTransformer implements IClassTransformer {
 							InsnList newInstructions = new InsnList();
 							LabelNode node1 = new LabelNode();
 
-							//	newInstructions.add(new FrameNode(F_SAME, 0, null, 0, null));
 							newInstructions.add(new VarInsnNode(ALOAD, 0));
 							newInstructions.add(new VarInsnNode(ALOAD, 1));
 							newInstructions.add(new VarInsnNode(DLOAD, 2));
 							newInstructions.add(new VarInsnNode(DLOAD, 4));
 							newInstructions.add(new VarInsnNode(DLOAD, 6));
 							newInstructions.add(new MethodInsnNode(INVOKESTATIC, ASM_HOOKS, "entityPreMoveHook",
-									"(L" + CLASS_ENTITY + ";L" + CLASS_MOVER_TYPE + ";DDD)Z", false));
-
-							newInstructions.add(new JumpInsnNode(IFNE, node1));
+									"(L" + CLASS_ENTITY + ";L" + CLASS_MOVER_TYPE + ";DDD)L" + CLASS_MOVE_EVENT + ";", false));
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new MethodInsnNode(INVOKEVIRTUAL, CLASS_EVENT, "isCanceled", "()Z", false));
+							newInstructions.add(new JumpInsnNode(IFEQ, node1));
+							newInstructions.add(new InsnNode(POP));
 							newInstructions.add(new InsnNode(RETURN));
 							newInstructions.add(node1);
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_MOVE_EVENT, "type", "L" + CLASS_MOVER_TYPE + ";"));
+							newInstructions.add(new VarInsnNode(ASTORE, 1));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_MOVE_EVENT, "x", "D"));
+							newInstructions.add(new VarInsnNode(DSTORE, 2));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_MOVE_EVENT, "y", "D"));
+							newInstructions.add(new VarInsnNode(DSTORE, 4));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_MOVE_EVENT, "z", "D"));
+							newInstructions.add(new VarInsnNode(DSTORE, 6));
 
 							methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), newInstructions);
 							methodNode.instructions.resetLabels();
@@ -109,19 +128,53 @@ public class WizardryTransformer implements IClassTransformer {
 							LabelNode node1 = new LabelNode();
 							InsnList newInstructions = new InsnList();
 
-							//	newInstructions.add(new FrameNode(F_SAME, 0, null, 0, null));
 							newInstructions.add(new VarInsnNode(ALOAD, 0));
 							newInstructions.add(new VarInsnNode(FLOAD, 1));
 							newInstructions.add(new VarInsnNode(FLOAD, 2));
 							newInstructions.add(new VarInsnNode(FLOAD, 3));
 							newInstructions.add(new MethodInsnNode(INVOKESTATIC, ASM_HOOKS, "travel",
-									"(L" + CLASS_ENTITY_LIVING_BASE + ";FFF)Z", false));
-
-							newInstructions.add(new JumpInsnNode(IFNE, node1));
+									"(L" + CLASS_ENTITY_LIVING_BASE + ";FFF)L" + CLASS_TRAVEL_EVENT + ";", false));
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new MethodInsnNode(INVOKEVIRTUAL, CLASS_EVENT, "isCanceled", "()Z", false));
+							newInstructions.add(new JumpInsnNode(IFEQ, node1));
+							newInstructions.add(new InsnNode(POP));
 							newInstructions.add(new InsnNode(RETURN));
 							newInstructions.add(node1);
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new InsnNode(DUP));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_TRAVEL_EVENT, "strafe", "F"));
+							newInstructions.add(new VarInsnNode(FSTORE, 1));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_TRAVEL_EVENT, "vertical", "F"));
+							newInstructions.add(new VarInsnNode(FSTORE, 2));
+							newInstructions.add(new FieldInsnNode(GETFIELD, CLASS_TRAVEL_EVENT, "forward", "F"));
+							newInstructions.add(new VarInsnNode(FSTORE, 3));
 
 							methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), newInstructions);
+
+							for (int i = 0; i < methodNode.instructions.size(); i++) {
+								AbstractInsnNode insnNode = methodNode.instructions.get(i);
+								if (insnNode instanceof MethodInsnNode) {
+									MethodInsnNode node = (MethodInsnNode) insnNode;
+									if (node.getOpcode() == Opcodes.INVOKEVIRTUAL
+											&& node.owner.equals(CLASS_BLOCK)
+											&& node.name.equals("getSlipperiness")
+											&& node.desc.equals("(L" +
+											CLASS_BLOCK_STATE + ";L" +
+											CLASS_BLOCK_ACCESS + ";L" +
+											CLASS_BLOCK_POS + ";L" +
+											CLASS_ENTITY + ";)F")) {
+
+										InsnList afterInstructions = new InsnList();
+
+										afterInstructions.add(new VarInsnNode(ALOAD, 0));
+										afterInstructions.add(new MethodInsnNode(INVOKESTATIC, ASM_HOOKS, "slipperyHook",
+												"(FL" + CLASS_ENTITY + ";)F", false));
+
+										methodNode.instructions.insert(insnNode, afterInstructions);
+									}
+								}
+							}
+
 							methodNode.instructions.resetLabels();
 							return true;
 						}

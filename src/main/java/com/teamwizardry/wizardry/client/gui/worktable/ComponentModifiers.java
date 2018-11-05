@@ -12,9 +12,11 @@ import com.teamwizardry.librarianlib.features.gui.component.GuiComponentEvents;
 import com.teamwizardry.librarianlib.features.gui.components.ComponentRect;
 import com.teamwizardry.librarianlib.features.gui.components.ComponentText;
 import com.teamwizardry.librarianlib.features.math.Vec2d;
-import com.teamwizardry.wizardry.api.spell.module.Module;
-import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceModifier;
 import com.teamwizardry.wizardry.api.util.RandUtil;
+import com.teamwizardry.wizardry.init.ModSounds;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.TextFormatting;
 
@@ -34,7 +36,7 @@ public class ComponentModifiers extends GuiComponent {
 	private boolean animationPlaying = false, refreshRequested = false;
 
 	public ComponentModifiers(WorktableGui worktable) {
-		super(384, 50, 80, 16 * 5);
+		super(384, 127, 80, 81);
 		this.worktable = worktable;
 
 		clipping.setClipToBounds(true);
@@ -87,15 +89,15 @@ public class ComponentModifiers extends GuiComponent {
 				return;
 			}
 
-			Module module = selectedModule.getModule();
+			ModuleInstance module = selectedModule.getModule();
 
-			ModuleModifier[] applicableModifiers = module.applicableModifiers();
+			ModuleInstanceModifier[] applicableModifiers = module.applicableModifiers();
 			if (applicableModifiers == null || applicableModifiers.length <= 0) {
 				animationPlaying = false;
 				return;
 			}
 
-			ModuleModifier[] modifiers = module.applicableModifiers();
+			ModuleInstanceModifier[] modifiers = module.applicableModifiers();
 			if (modifiers == null) {
 				animationPlaying = false;
 				return;
@@ -113,7 +115,7 @@ public class ComponentModifiers extends GuiComponent {
 				int lengthToTravel = (i + 1) * PIXELS_PER_BAR; // units: pixels
 				float slideDuration = outDuration * lengthToTravel / slideOutDist; // units: ticks
 
-				ModuleModifier modifier = modifiers[i];
+				ModuleInstanceModifier modifier = modifiers[i];
 
 				ComponentRect bar = new ComponentRect(0, 0, getSize().getXi(), PIXELS_PER_BAR);
 				bar.getColor().setValue(new Color(0x80000000, true));
@@ -133,7 +135,7 @@ public class ComponentModifiers extends GuiComponent {
 				animPlate.setFrom(-PIXELS_PER_BAR); // units: pixels
 				animPlate.setTo(lengthToTravel - PIXELS_PER_BAR); // units: pixels
 				animPlate.setDuration(slideDuration); // units: ticks
-
+				animPlate.setCompletion(() -> Minecraft.getMinecraft().player.playSound(ModSounds.WHOOSH, 1f, 1f));
 				add(animPlate);
 
 				bar.render.getTooltip().func((Function<GuiComponent, List<String>>) t -> {
@@ -169,23 +171,27 @@ public class ComponentModifiers extends GuiComponent {
 					if (!event.component.getMouseOver()) return;
 					if (worktable.selectedModule == null) return;
 
-					int j = worktable.selectedModule.hasData(Integer.class, modifier.getID()) ? worktable.selectedModule.getData(Integer.class, modifier.getID()) : 0;
+					int j = worktable.selectedModule.hasData(Integer.class, modifier.getSubModuleID()) ? worktable.selectedModule.getData(Integer.class, modifier.getSubModuleID()) : 0;
 
 					int status = -1;
 					if (event.getButton() == EnumMouseButton.LEFT) {
-						worktable.selectedModule.setData(Integer.class, modifier.getID(), ++j);
+						Minecraft.getMinecraft().player.playSound(ModSounds.POP, 1f, 1f);
+						worktable.selectedModule.setData(Integer.class, modifier.getSubModuleID(), ++j);
 						status = 0;
 						worktable.setToastMessage("", Color.GREEN);
+						worktable.syncToServer();
 					} else if (event.getButton() == EnumMouseButton.RIGHT) {
-						if (worktable.selectedModule.hasData(Integer.class, modifier.getID())) {
+						if (worktable.selectedModule.hasData(Integer.class, modifier.getSubModuleID())) {
 
 							if (j > 0) {
-								worktable.selectedModule.setData(Integer.class, modifier.getID(), --j);
+								Minecraft.getMinecraft().player.playSound(ModSounds.ZOOM, 1f, 1f);
+								worktable.selectedModule.setData(Integer.class, modifier.getSubModuleID(), --j);
 
 								if (j <= 0) {
-									worktable.selectedModule.removeData(Integer.class, modifier.getID());
+									worktable.selectedModule.removeData(Integer.class, modifier.getSubModuleID());
 								}
 								status = 1;
+								worktable.syncToServer();
 							}
 							worktable.setToastMessage("", Color.GREEN);
 						}

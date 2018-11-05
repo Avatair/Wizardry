@@ -4,8 +4,8 @@ import com.teamwizardry.librarianlib.features.saving.Savable;
 import com.teamwizardry.wizardry.api.capability.mana.DefaultWizardryCapability;
 import com.teamwizardry.wizardry.api.capability.mana.IWizardryCapability;
 import com.teamwizardry.wizardry.api.capability.mana.WizardryCapabilityProvider;
-import com.teamwizardry.wizardry.common.core.nemez.NemezTracker;
 import kotlin.Pair;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.*;
 import net.minecraft.util.EnumFacing;
@@ -14,10 +14,16 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.INBTSerializable;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.BLOCK_HIT;
 
 /**
  * Created by Demoniaque.
@@ -103,15 +109,15 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			if (caster == null) {
 				Vec3d target = getData(DefaultKeys.TARGET_HIT);
 				if (target == null) {
-					BlockPos pos = getData(DefaultKeys.BLOCK_HIT);
+					BlockPos pos = getData(BLOCK_HIT);
 					if (pos == null) {
 						Entity victim = getData(DefaultKeys.ENTITY_HIT);
 						if (victim == null) {
 							return null;
-						} else return victim.getPositionVector().addVector(0, victim.height / 2.0, 0);
-					} else return new Vec3d(pos).addVector(0.5, 0.5, 0.5);
+						} else return victim.getPositionVector().add(0, victim.height / 2.0, 0);
+					} else return new Vec3d(pos).add(0.5, 0.5, 0.5);
 				} else return target;
-			} else return caster.getPositionVector().addVector(0, caster.height / 2.0, 0);
+			} else return caster.getPositionVector().add(0, caster.height / 2.0, 0);
 		} else return origin;
 	}
 
@@ -122,7 +128,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			Entity caster = getData(DefaultKeys.CASTER);
 			if (caster == null) {
 				return null;
-			} else return caster.getPositionVector().addVector(0, caster.height / 2.0, 0);
+			} else return caster.getPositionVector().add(0, caster.height / 2.0, 0);
 		} else return origin;
 	}
 
@@ -130,7 +136,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	public Vec3d getTargetWithFallback() {
 		Vec3d target = getData(DefaultKeys.TARGET_HIT);
 		if (target == null) {
-			BlockPos pos = getData(DefaultKeys.BLOCK_HIT);
+			BlockPos pos = getData(BLOCK_HIT);
 			if (pos == null) {
 				Entity victim = getData(DefaultKeys.ENTITY_HIT);
 				if (victim == null) {
@@ -139,11 +145,11 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 						Entity caster = getData(DefaultKeys.CASTER);
 						if (caster == null) {
 							return null;
-						} else return caster.getPositionVector().addVector(0, caster.height / 2.0, 0);
+						} else return caster.getPositionVector().add(0, caster.height / 2.0, 0);
 					}
 					return origin;
-				} else return victim.getPositionVector().addVector(0, victim.height / 2.0, 0);
-			} else return new Vec3d(pos).addVector(0.5, 0.5, 0.5);
+				} else return victim.getPositionVector().add(0, victim.height / 2.0, 0);
+			} else return new Vec3d(pos).add(0.5, 0.5, 0.5);
 		}
 		return target;
 	}
@@ -152,43 +158,20 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	public Vec3d getTarget() {
 		Vec3d target = getData(DefaultKeys.TARGET_HIT);
 		if (target == null) {
-			BlockPos pos = getData(DefaultKeys.BLOCK_HIT);
+			BlockPos pos = getData(BLOCK_HIT);
 			if (pos == null) {
 				Entity victim = getData(DefaultKeys.ENTITY_HIT);
 				if (victim == null) {
 					return null;
-				} else return victim.getPositionVector().addVector(0, victim.height / 2.0, 0);
-			} else return new Vec3d(pos).addVector(0.5, 0.5, 0.5);
+				} else return victim.getPositionVector().add(0, victim.height / 2.0, 0);
+			} else return new Vec3d(pos).add(0.5, 0.5, 0.5);
 		}
 		return target;
 	}
 
-
-	@Nullable
-	public Vec3d getTargetBlockFirst() {
-		BlockPos pos = getData(DefaultKeys.BLOCK_HIT);
-		if (pos == null) {
-			Vec3d target = getData(DefaultKeys.TARGET_HIT);
-			if (target == null) {
-
-				Entity victim = getData(DefaultKeys.ENTITY_HIT);
-				if (victim == null) {
-					return null;
-				} else return victim.getPositionVector().addVector(0, victim.height / 2.0, 0);
-			} else return target;
-		} else return new Vec3d(pos).addVector(0.5, 0.5, 0.5);
-	}
-
-	@Nullable
-	public BlockPos getTargetPosBlockFirst() {
-		return getData(DefaultKeys.BLOCK_HIT);
-	}
-
 	@Nullable
 	public BlockPos getTargetPos() {
-		Vec3d target = getTarget();
-		if (target == null) return null;
-		return new BlockPos(target);
+		return getData(BLOCK_HIT);
 	}
 
 	@Nullable
@@ -204,12 +187,6 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	@Nullable
 	public Entity getVictim() {
 		return getData(DefaultKeys.ENTITY_HIT);
-	}
-
-	@Nullable
-	public Entity getVictimWithCasterFallback() {
-		Entity victim = getVictim();
-		return victim == null ? getCaster() : victim;
 	}
 
 	@Nullable
@@ -251,23 +228,23 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 
 	public void processEntity(@Nonnull Entity entity, boolean asCaster) {
 		if (asCaster) {
-			addData(DefaultKeys.ORIGIN, entity.getPositionVector().addVector(0, entity.getEyeHeight(), 0));
+			addData(DefaultKeys.ORIGIN, entity.getPositionVector().add(0, entity.getEyeHeight(), 0));
 			addData(DefaultKeys.CASTER, entity);
 			addData(DefaultKeys.YAW, entity.rotationYaw);
 			addData(DefaultKeys.PITCH, entity.rotationPitch);
 			addData(DefaultKeys.LOOK, entity.getLook(0));
 			addData(DefaultKeys.CAPABILITY, WizardryCapabilityProvider.getCap(entity));
 		} else {
-			addData(DefaultKeys.TARGET_HIT, entity.getPositionVector().addVector(0, entity.height / 2.0, 0));
+			addData(DefaultKeys.TARGET_HIT, entity.getPositionVector().add(0, entity.height / 2.0, 0));
 			addData(DefaultKeys.ENTITY_HIT, entity);
 		}
 	}
 
 	public void processBlock(@Nullable BlockPos pos, @Nullable EnumFacing facing, @Nullable Vec3d targetHit) {
 		if (pos == null && targetHit != null) pos = new BlockPos(targetHit);
-		if (targetHit == null && pos != null) targetHit = new Vec3d(pos).addVector(0.5, 0.5, 0.5);
+		if (targetHit == null && pos != null) targetHit = new Vec3d(pos).add(0.5, 0.5, 0.5);
 
-		addData(DefaultKeys.BLOCK_HIT, pos);
+		addData(BLOCK_HIT, pos);
 		addData(DefaultKeys.TARGET_HIT, targetHit);
 		addData(DefaultKeys.FACE_HIT, facing);
 	}
@@ -288,11 +265,13 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void deserializeNBT(NBTTagCompound nbt) {
+		primary:
 		for (String key : nbt.getKeySet()) {
 			for (Pair pair : dataProcessor.keySet()) {
 				if (pair.getFirst().equals(key)) {
 					NBTBase nbtType = nbt.getTag(pair.getFirst() + "");
 					data.put(pair, dataProcessor.get(pair).deserialize(world, nbtType));
+					continue primary;
 				}
 			}
 		}
@@ -307,7 +286,6 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			compound.setTag(pair.getFirst() + "", nbtClass);
 		}
 
-		compound.setInteger("world", world.provider.getDimension());
 		return compound;
 	}
 
@@ -320,6 +298,35 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	}
 
 	public static class DefaultKeys {
+
+		public static final Pair<String, Class<NBTTagList>> TAG_LIST = constructPair("list", NBTTagList.class, new ProcessData.Process<NBTTagList, NBTTagList>() {
+
+			@Nonnull
+			@Override
+			public NBTTagList serialize(@Nullable NBTTagList object) {
+				return object == null ? new NBTTagList() : object;
+			}
+
+			@Nullable
+			@Override
+			public NBTTagList deserialize(@Nullable World world, @Nonnull NBTTagList object) {
+				return object;
+			}
+		});
+
+		public static final Pair<String, Class<NBTTagCompound>> COMPOUND = constructPair("compound", NBTTagCompound.class, new ProcessData.Process<NBTTagCompound, NBTTagCompound>() {
+			@Nonnull
+			@Override
+			public NBTTagCompound serialize(@Nullable NBTTagCompound object) {
+				return object == null ? new NBTTagCompound() : object;
+			}
+
+			@Override
+			public NBTTagCompound deserialize(@Nullable World world, @Nonnull NBTTagCompound object) {
+				return object;
+			}
+		});
+
 		public static final Pair<String, Class<Integer>> MAX_TIME = constructPair("max_time", Integer.class, new ProcessData.Process<NBTTagInt, Integer>() {
 			@Nonnull
 			@Override
@@ -499,6 +506,24 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		});
 
 		@Nonnull
+		public static final Pair<String, Class<IBlockState>> BLOCK_STATE = constructPair("block_state", IBlockState.class, new ProcessData.Process<NBTTagCompound, IBlockState>() {
+
+			@Nonnull
+			@Override
+			public NBTTagCompound serialize(@Nullable IBlockState object) {
+				NBTTagCompound nbtState = new NBTTagCompound();
+				if (object == null) return nbtState;
+				NBTUtil.writeBlockState(nbtState, object);
+				return nbtState;
+			}
+
+			@Override
+			public IBlockState deserialize(@Nullable World world, @Nonnull NBTTagCompound object) {
+				return NBTUtil.readBlockState(object);
+			}
+		});
+
+		@Nonnull
 		public static final Pair<String, Class<Long>> SEED = constructPair("seed", Long.class, new ProcessData.Process<NBTTagLong, Long>() {
 
 			@Nonnull
@@ -515,24 +540,81 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			}
 		});
 
-		//TODO: not how you serialize nemez apparently
-		@Nonnull
-		public static final Pair<String, Class<NemezTracker>> NEMEZ = constructPair("nemez", NemezTracker.class, new ProcessData.Process<NBTTagList, NemezTracker>() {
+		public static final Pair<String, Class<Set<BlockPos>>> BLOCK_SET = constructPair("block_set", Set.class, new ProcessData.Process<NBTTagList, Set<BlockPos>>() {
 
 			@Nonnull
 			@Override
-			public NBTTagList serialize(@Nullable NemezTracker object) {
-				if (object != null)
-					return object.serializeNBT();
-				return new NBTTagList();
+			public NBTTagList serialize(@Nullable Set<BlockPos> object) {
+				NBTTagList list = new NBTTagList();
+
+				if (object == null) return list;
+
+				for (BlockPos pos : object) {
+					list.appendTag(new NBTTagLong(pos.toLong()));
+				}
+
+				return list;
+			}
+
+			@NotNull
+			@Override
+			public Set<BlockPos> deserialize(@Nullable World world, @Nonnull NBTTagList object) {
+				Set<BlockPos> poses = new HashSet<>();
+
+				for (NBTBase base : object) {
+					if (base instanceof NBTTagLong) {
+						poses.add(BlockPos.fromLong(((NBTTagLong) base).getLong()));
+					}
+				}
+
+				return poses;
+			}
+		});
+		
+		public static final Pair<String, Class<HashMap<BlockPos, IBlockState>>> BLOCKSTATE_CACHE = constructPair("block_state_cache", HashMap.class, new ProcessData.Process<NBTTagList, HashMap<BlockPos, IBlockState>>() {
+
+			@Nonnull
+			@Override
+			public NBTTagList serialize(@Nullable HashMap<BlockPos, IBlockState> object) {
+				NBTTagList list = new NBTTagList();
+
+				if (object == null) return list;
+
+				for (Map.Entry<BlockPos, IBlockState> entry : object.entrySet()) {
+					NBTTagCompound compound = new NBTTagCompound();
+					compound.setLong("pos", entry.getKey().toLong());
+
+					NBTTagCompound nbtState = new NBTTagCompound();
+					NBTUtil.writeBlockState(nbtState, entry.getValue());
+					compound.setTag("blockstate", nbtState);
+
+					list.appendTag(compound);
+				}
+
+				return list;
 			}
 
 			@Override
-			public NemezTracker deserialize(World world, @Nonnull NBTTagList object) {
-				NemezTracker tracker = new NemezTracker();
-				tracker.deserializeNBT(object);
-				return tracker;
+			public HashMap<BlockPos, IBlockState> deserialize(@Nullable World world, @Nonnull NBTTagList object) {
+				HashMap<BlockPos, IBlockState> stateCache = new HashMap<>();
+
+				for (NBTBase base : object) {
+					if (base instanceof NBTTagCompound) {
+
+						NBTTagCompound compound = (NBTTagCompound) base;
+						if (compound.hasKey("pos") && compound.hasKey("blockstate")) {
+							BlockPos pos = BlockPos.fromLong(compound.getLong("pos"));
+							IBlockState state = NBTUtil.readBlockState(compound.getCompoundTag("blockstate"));
+
+							stateCache.put(pos, state);
+
+						}
+					}
+				}
+
+				return stateCache;
 			}
 		});
+	
 	}
 }

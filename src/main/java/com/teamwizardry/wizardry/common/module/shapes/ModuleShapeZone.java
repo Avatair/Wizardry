@@ -1,26 +1,22 @@
 package com.teamwizardry.wizardry.common.module.shapes;
 
+import com.teamwizardry.librarianlib.features.math.interpolate.numeric.InterpFloatInOut;
 import com.teamwizardry.librarianlib.features.math.interpolate.position.InterpCircle;
 import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
 import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpColorHSV;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.Constants;
 import com.teamwizardry.wizardry.api.spell.ILingeringModule;
 import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
-import com.teamwizardry.wizardry.api.spell.module.ModuleModifier;
-import com.teamwizardry.wizardry.api.spell.module.ModuleShape;
-import com.teamwizardry.wizardry.api.spell.module.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
+import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.interp.InterpScale;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseAOE;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseDuration;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreasePotency;
-import com.teamwizardry.wizardry.common.module.modifiers.ModuleModifierIncreaseRange;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
@@ -41,20 +37,15 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.*;
 /**
  * Created by Demoniaque.
  */
-@RegisterModule
-public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
+@RegisterModule(ID="shape_zone")
+public class ModuleShapeZone implements IModuleShape, ILingeringModule {
 
 	public static final String ZONE_OFFSET = "zone offset";
+	public static final String ZONE_CAST = "zone cast";
 	
-	@Nonnull
 	@Override
-	public String getID() {
-		return "shape_zone";
-	}
-
-	@Override
-	public ModuleModifier[] applicableModifiers() {
-		return new ModuleModifier[]{new ModuleModifierIncreaseAOE(), new ModuleModifierIncreasePotency(), new ModuleModifierIncreaseRange(), new ModuleModifierIncreaseDuration()};
+	public String[] compatibleModifierClasses() {
+		return new String[]{"modifier_increase_aoe", "modifier_increase_potency", "modifier_extend_range", "modifier_extend_time"};
 	}
 
 	@Override
@@ -63,9 +54,7 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 	}
 
 	@Override
-	public boolean run(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (runRunOverrides(spell, spellRing)) return true;
-
+	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		World world = spell.world;
 //		Vec3d position = spell.getData(ORIGIN);
 //		Entity caster = spell.getCaster();
@@ -78,18 +67,24 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 		double range = spellRing.getAttributeValue(AttributeRegistry.RANGE, spell);
 
 		Vec3d min = targetPos.subtract(aoe/2, range/2, aoe/2);
-		Vec3d max = targetPos.addVector(aoe/2, range/2, aoe/2);
-		
-		NBTTagCompound info = spellRing.getInformationTag();
+		Vec3d max = targetPos.add(aoe / 2, range / 2, aoe / 2);
+
+		NBTTagCompound info = spell.getData(SpellData.DefaultKeys.COMPOUND, new NBTTagCompound());
+
 		double zoneOffset = info.getDouble(ZONE_OFFSET) + potency;
-		while (zoneOffset >= ConfigValues.zoneTimer)
+		info.setBoolean(ZONE_CAST, false);
+		if (zoneOffset >= ConfigValues.zoneTimer)
 		{
-			zoneOffset -= ConfigValues.zoneTimer;
-			if (!spellRing.taxCaster(spell))
+			zoneOffset %= ConfigValues.zoneTimer;
+			if (!spellRing.taxCaster(spell, true))
 			{
-				info.setDouble(ZONE_OFFSET, zoneOffset % ConfigValues.zoneTimer);
+				info.setDouble(ZONE_OFFSET, zoneOffset);
+				spell.addData(COMPOUND, info);
 				return false;
 			}
+			
+			instance.runRunOverrides(spell, spellRing);
+			
 			BlockPos target = new BlockPos(RandUtil.nextDouble(min.x, max.x), RandUtil.nextDouble(min.y, max.y), RandUtil.nextDouble(min.z, max.z));
 			List<Entity> entities = world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(target));
 			for (Entity entity : entities)
@@ -105,7 +100,7 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 				if (spellRing.getChildRing() != null)
 					spellRing.getChildRing().runSpellRing(spell);
 			}
-			Vec3d pos = new Vec3d(target).addVector(0.5, 0.5, 0.5);
+			Vec3d pos = new Vec3d(target).add(0.5, 0.5, 0.5);
 				
 			SpellData copy = spell.copy();
 			copy.addData(ORIGIN, pos);
@@ -117,13 +112,15 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 				spellRing.getChildRing().runSpellRing(copy);
 		}
 		info.setDouble(ZONE_OFFSET, zoneOffset);
+
+		spell.addData(COMPOUND, info);
 		return true;
 	}
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void render(@Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
-		if (runRenderOverrides(spell, spellRing)) return;
+	public void renderSpell(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
+		if (instance.runRenderOverrides(spell, spellRing)) return;
 
 		Vec3d target = spell.getTarget();
 
@@ -136,8 +133,8 @@ public class ModuleShapeZone extends ModuleShape implements ILingeringModule {
 		glitter.setRender(new ResourceLocation(Wizardry.MODID, Constants.MISC.SPARKLE_BLURRED));
 		glitter.setScaleFunction(new InterpScale(1, 0));
 		glitter.setCollision(true);
-		ParticleSpawner.spawn(glitter, spell.world, new InterpCircle(target, new Vec3d(0, 1, 0), (float) aoe, 1, RandUtil.nextFloat()), (int) (aoe * 30), 10, (aFloat, particleBuilder) -> {
-			glitter.setAlphaFunction(new InterpFadeInOut(0.3f, 0.3f));
+		ParticleSpawner.spawn(glitter, spell.world, new InterpCircle(target, new Vec3d(0, 1, 0), (float) aoe, 1, RandUtil.nextFloat()), (int) (aoe * 25), 10, (aFloat, particleBuilder) -> {
+			glitter.setAlphaFunction(new InterpFloatInOut(0.3f, 0.3f));
 			glitter.setLifetime(RandUtil.nextInt(30, 50));
 			glitter.setColorFunction(new InterpColorHSV(spellRing.getPrimaryColor(), spellRing.getSecondaryColor()));
 			glitter.setMotion(new Vec3d(

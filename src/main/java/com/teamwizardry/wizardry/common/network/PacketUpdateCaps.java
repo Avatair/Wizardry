@@ -19,9 +19,8 @@ import javax.annotation.Nonnull;
 @PacketRegister(Side.CLIENT)
 public class PacketUpdateCaps extends PacketBase {
 
-
 	@Save
-	private NBTTagCompound tags;
+	public NBTTagCompound tags;
 
 	public PacketUpdateCaps() {
 	}
@@ -32,6 +31,8 @@ public class PacketUpdateCaps extends PacketBase {
 
 	@Override
 	public void handle(@Nonnull MessageContext ctx) {
+		if (ctx.side.isServer()) return;
+
 		EntityPlayer player = LibrarianLib.PROXY.getClientPlayer();
 
 		IWizardryCapability cap = WizardryCapabilityProvider.getCap(player);

@@ -1,6 +1,3 @@
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
 buildscript {
     repositories {
         jcenter()
@@ -23,6 +20,10 @@ archivesBaseName = "wizardry"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    
+}
 
 minecraft {
     version = "$mc_version-$forge_version"
@@ -30,7 +31,7 @@ minecraft {
     mappings = "$mcp_version"
 
     replace 'GRADLE:VERSION', "$mod_version"
-    replace 'required-before:librarianlib', 'required-before:librarianlib@' + liblib_version
+    replace 'required-before:librarianlib', "required-before:librarianlib@[$liblib_version]"
 
     replaceIn 'Wizardry.java'
 
@@ -48,7 +49,7 @@ repositories {
 }
 
 dependencies {
-	compile "com.teamwizardry.librarianlib:librarianlib-1.12.2:$liblib_version-SNAPSHOT:deobf"
+	compile ("com.teamwizardry.librarianlib:librarianlib-particle-system-1.12.2:$liblib_version-SNAPSHOT:deobf") {changing = true}
 	deobfCompile "mezz.jei:jei_1.12:$jei_version:api"
 	runtime "mezz.jei:jei_1.12:$jei_version"
 	runtime "team.chisel.ctm:CTM:$ctm_version"
@@ -67,8 +68,6 @@ jar {
         )
     }
 }
-
-
 
 processResources {
     inputs.property 'mod_version', project.version

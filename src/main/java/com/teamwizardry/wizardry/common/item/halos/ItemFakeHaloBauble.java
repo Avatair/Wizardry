@@ -6,6 +6,7 @@ import com.teamwizardry.wizardry.api.ConfigValues;
 import com.teamwizardry.wizardry.api.capability.mana.CapManager;
 import com.teamwizardry.wizardry.api.item.halo.IHalo;
 import com.teamwizardry.wizardry.init.ModBlocks;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -15,8 +16,11 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.Optional;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 
 /**
  * Created by Demoniaque on 8/30/2016.
@@ -41,18 +45,13 @@ public class ItemFakeHaloBauble extends ItemModBauble implements IHalo {
 
 	@Override
 	public void onWornTick(@Nonnull ItemStack stack, @Nonnull EntityLivingBase player) {
-		CapManager manager = new CapManager(player).setManualSync(true);
+		if (player.world.isRemote) return;
 
-		manager.setMaxMana(ConfigValues.crudeHaloBufferSize);
-		manager.setMaxBurnout(ConfigValues.crudeHaloBufferSize);
-		if (manager.getMana() > ConfigValues.crudeHaloBufferSize) manager.setMana(ConfigValues.crudeHaloBufferSize);
-		if (manager.getBurnout() > ConfigValues.crudeHaloBufferSize)
-			manager.setBurnout(ConfigValues.crudeHaloBufferSize);
-
-		if (!manager.isBurnoutEmpty()) manager.removeBurnout(manager.getMaxBurnout() * ConfigValues.haloGenSpeed);
-
-		if (manager.isSomethingChanged())
-			manager.sync();
+		try (CapManager.CapManagerBuilder mgr = CapManager.forObject(player)) {
+			mgr.setMaxMana(ConfigValues.crudeHaloBufferSize);
+			mgr.setMaxBurnout(ConfigValues.crudeHaloBufferSize);
+			mgr.removeBurnout(mgr.getMaxBurnout() * ConfigValues.crudeHaloBufferSize);
+		}
 	}
 
 	@Nonnull
@@ -60,5 +59,11 @@ public class ItemFakeHaloBauble extends ItemModBauble implements IHalo {
 	@Override
 	public BaubleType getBaubleType(@Nonnull ItemStack itemStack) {
 		return BaubleType.HEAD;
+	}
+
+	@Override
+	public void addInformation(@NotNull ItemStack stack, @Nullable World world, @NotNull List<String> tooltip, @NotNull ITooltipFlag flag) {
+		super.addInformation(stack, world, tooltip, flag);
+		tooltip.addAll(getHaloTooltip(stack));
 	}
 }
