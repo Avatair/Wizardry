@@ -72,6 +72,7 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		SpellProgramHandler program = spellRing.getSpellProgram();
+		program.runHook("onSpellCast", "world");
 		
 		World world = spell.world;
 		Vec3d look = spell.getData(LOOK);

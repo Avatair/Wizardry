@@ -7,11 +7,6 @@
 	proc initMain {
 		echo stderr "initMain called.";
 		
-		// Test builtins
-		push "Avatair";
-		call native helloWorld;
-		echo stderr;
-		
 		// TODO: do initialization
 		call initCasting;
 	}
@@ -26,6 +21,7 @@
 // Overrideables:
 	
 	proc v_initCastingDefault {
+		set $hooks.onSpellCast = "hook_onSpellCast";
 		set $hooks.onAfterSpellCast = "hook_onAfterSpellCast";
 	}
 	
@@ -33,4 +29,10 @@
 	
 	proc hook_onAfterSpellCast {
 		call native stdShapeAfterSpellCast;
+	}
+	
+	proc hook_onSpellCast {
+		// Test builtins
+		call native helloWorld;
+		echo stderr;
 	}

@@ -24,15 +24,15 @@ public class RunUtils {
 	
 	public static void runProgram(ICommandOperable initialStateTemplate, String entryPoint, ProgramSequence ... config) throws UnsatisfiedLinkException {
 		ICommandGenerator program = compileProgram(entryPoint, config);
-		runProgram(initialStateTemplate, program);
+		runProgram(initialStateTemplate.makeCopy(true), program);
 	}
 	
-	public static ActionProcessor runProgram(ICommandOperable initialStateTemplate, ICommandGenerator program) {
+	public static ActionProcessor runProgram(ICommandOperable initialState, ICommandGenerator program) {
 		ActionProcessor actProc = new ActionProcessor();
 		
 		CommandInstance[] cmds = program.getNextInstances(null);
 		for( CommandInstance cmd : cmds ) 
-			actProc.startAction(new CommandDispatcherAction(initialStateTemplate.makeCopy(true), cmd, program, 0) );
+			actProc.startAction(new CommandDispatcherAction(initialState, cmd, program, 0) );
 		processorLoop(actProc);
 		
 		return actProc;

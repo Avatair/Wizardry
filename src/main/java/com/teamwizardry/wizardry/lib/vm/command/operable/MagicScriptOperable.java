@@ -1,6 +1,7 @@
 package com.teamwizardry.wizardry.lib.vm.command.operable;
 
 import java.lang.reflect.Constructor;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -43,6 +44,10 @@ public abstract class MagicScriptOperable<T extends MagicScriptOperable<T>> impl
 	@Override
 	public boolean hasData(String key) {
 		return values.containsKey(key);
+	}
+	
+	public Map<String, Object> getData() {
+		return Collections.unmodifiableMap(values);
 	}
 	
 	@Override

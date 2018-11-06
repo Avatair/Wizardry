@@ -13,12 +13,9 @@ import java.util.Map.Entry;
 
 import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
-import com.teamwizardry.wizardry.api.spell.annotation.ContextSuper;
 import com.teamwizardry.wizardry.api.spell.annotation.MagicScriptBuiltin;
-import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInitException;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstance;
-import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideSuper;
 import com.teamwizardry.wizardry.lib.vm.Action;
 import com.teamwizardry.wizardry.lib.vm.ActionProcessor;
 import com.teamwizardry.wizardry.lib.vm.command.ICommandGenerator;
@@ -33,7 +30,7 @@ public class SpellProgramHandler {
 
 	private static final String ROUTINE_INITMAIN = "initMain";
 
-	private static final String HOOK_RUNSPELL = "hooks.onCasted";
+//	private static final String HOOK_RUNSPELL = "hooks.onCasted";
 
 	private static ProgramSequence generics = null;
 	
@@ -42,7 +39,8 @@ public class SpellProgramHandler {
 	private WizardryOperable initialState = null;
 	
 	private ICommandGenerator initRoutine;
-	private ICommandGenerator runRoutine;
+	private HashMap<String, ICommandGenerator> hookRoutines = new HashMap<>();
+//	private ICommandGenerator runRoutine;
 	
 	public SpellProgramHandler(SpellRing spellChain) {
 		if( spellChain.getParentRing() != null )
@@ -61,7 +59,8 @@ public class SpellProgramHandler {
 		initialState = null;
 
 		initRoutine = null;
-		runRoutine = null;
+		hookRoutines.clear();
+//		runRoutine = null;
 		
 		// Load scripts
 		try {
@@ -71,13 +70,23 @@ public class SpellProgramHandler {
 			
 			// Call initialization
 			initialState = new WizardryOperable(builtins);
-			ActionProcessor proc = RunUtils.runProgram(initialState, initRoutine);	// TODO: Handle exceptions
+			ActionProcessor proc = RunUtils.runProgram(initialState.makeCopy(true), initRoutine);	// TODO: Handle exceptions
 			logExceptions(proc);
 			
 			// Retrieve hooks
-			String hook = getValue_String(initialState, HOOK_RUNSPELL, null);
+/*			String hook = getValue_String(initialState, HOOK_RUNSPELL, null);
 			if( hook != null ) {
 				runRoutine = RunUtils.compileProgram(hook, assemblies);
+			}*/
+			for( Entry<String, Object> dataEntry : initialState.getData().entrySet() ) {
+				if( dataEntry.getKey().startsWith("hooks." ) ) {
+					String hookKey = dataEntry.getKey().substring(6);
+					String hookPointer = getValue_String(initialState, dataEntry.getKey(), null);
+					if( hookPointer == null )
+						throw new IllegalStateException("Hook data has no value.");	// Should not happen.
+					ICommandGenerator routine = RunUtils.compileProgram(hookPointer, assemblies);
+					hookRoutines.put(hookKey, routine);
+				}
 			}
 			
 			// TODO: Add more routines here ...
@@ -90,19 +99,39 @@ public class SpellProgramHandler {
 		}
 	}
 	
-	public boolean runProgram(ExecutionPhase phase) {
+/*	public boolean runProgram(ExecutionPhase phase) {
 		if( initialState == null )
 			return false; // If something was unsuccessful when loading.
 		
 		ActionProcessor proc;
 		if( ExecutionPhase.RUN_TICK.equals(phase) ) {
-			proc = RunUtils.runProgram(initialState, runRoutine);
+			proc = RunUtils.runProgram(initialState.makeCopy(true), runRoutine);
 		}
 		else
 			throw new IllegalArgumentException("Unknown execution phase " + phase);
 		logExceptions(proc);
 		
 		return true;
+	}*/
+	
+	public void runHook(String hookKey, Object ... args) {
+		if( initialState == null )
+			throw new IllegalStateException("Handler is uninitialized.");	// TODO: Improve exception
+		ICommandGenerator routine = hookRoutines.get(hookKey);
+		if( routine == null )
+			throw new IllegalStateException("Hook '" + hookKey + "' is not existing.");	// TODO: Improve exception
+		
+		WizardryOperable state = (WizardryOperable)initialState.makeCopy(true);
+		
+		// Load arguments
+		for( Object obj : args ) {
+			// TODO: Support null arguments
+			state.pushData(obj);
+		}
+		
+		// invoke VM procedure
+		ActionProcessor proc = RunUtils.runProgram(state, routine);
+		logExceptions(proc);
 	}
 	
 	private ProgramSequence[] loadSources() throws IOException, ScriptParserException {
