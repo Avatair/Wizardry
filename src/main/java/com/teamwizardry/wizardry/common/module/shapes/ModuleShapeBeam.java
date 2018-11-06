@@ -7,6 +7,7 @@ import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
 import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
+import com.teamwizardry.wizardry.api.spell.annotation.ContextData;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextSuper;
 import com.teamwizardry.wizardry.api.spell.annotation.MagicScriptBuiltin;
@@ -15,6 +16,7 @@ import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideSuper;
 import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler;
+import com.teamwizardry.wizardry.api.spell.vm.WizardryOperable;
 import com.teamwizardry.wizardry.api.util.RandUtil;
 import com.teamwizardry.wizardry.api.util.RayTrace;
 import com.teamwizardry.wizardry.client.fx.LibParticles;
@@ -72,7 +74,8 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	@Override
 	public boolean run(ModuleInstanceShape instance, @Nonnull SpellData spell, @Nonnull SpellRing spellRing) {
 		SpellProgramHandler program = spellRing.getSpellProgram();
-		program.runHook("onSpellCast", "world");
+		String retVal = (String)program.runHook("getCoolMessage", spell, "world");
+		System.out.println(retVal);
 		
 		World world = spell.world;
 		Vec3d look = spell.getData(LOOK);
@@ -213,7 +216,7 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	///////////
 	
 	@MagicScriptBuiltin("helloWorld")
-	public String helloWorldBuiltin(String name, @ContextRing SpellRing shape) {
+	public String helloWorldBuiltin(String name, @ContextRing SpellRing shape, @ContextData WizardryOperable data) {
 		return "Hello " + name + ". How is the live on " + shape + "?";
 	}
 	

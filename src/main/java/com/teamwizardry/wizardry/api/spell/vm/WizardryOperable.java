@@ -40,7 +40,7 @@ public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 		
 		// invoke builtin
 		try {
-			Object object = builtin.invoke(args);
+			Object object = builtin.invoke(this, args);
 			if( object != null ) {
 				// TODO: Translate primitive types like "int", "float" etc. into their container class types
 				pushData(object);

@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.teamwizardry.wizardry.api.spell.SpellData;
 import com.teamwizardry.wizardry.api.spell.SpellRing;
+import com.teamwizardry.wizardry.api.spell.annotation.ContextData;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
 import com.teamwizardry.wizardry.api.spell.annotation.MagicScriptBuiltin;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInitException;
@@ -39,7 +41,7 @@ public class SpellProgramHandler {
 	private WizardryOperable initialState = null;
 	
 	private ICommandGenerator initRoutine;
-	private HashMap<String, ICommandGenerator> hookRoutines = new HashMap<>();
+	private HashMap<String, CallableHook> hookRoutines = new HashMap<>();
 //	private ICommandGenerator runRoutine;
 	
 	public SpellProgramHandler(SpellRing spellChain) {
@@ -78,15 +80,28 @@ public class SpellProgramHandler {
 			if( hook != null ) {
 				runRoutine = RunUtils.compileProgram(hook, assemblies);
 			}*/
+			
 			for( Entry<String, Object> dataEntry : initialState.getData().entrySet() ) {
+				boolean hasReturnValue;
+				String hookKey;
 				if( dataEntry.getKey().startsWith("hooks." ) ) {
-					String hookKey = dataEntry.getKey().substring(6);
-					String hookPointer = getValue_String(initialState, dataEntry.getKey(), null);
-					if( hookPointer == null )
-						throw new IllegalStateException("Hook data has no value.");	// Should not happen.
-					ICommandGenerator routine = RunUtils.compileProgram(hookPointer, assemblies);
-					hookRoutines.put(hookKey, routine);
+					hookKey = dataEntry.getKey().substring(6);
+					hasReturnValue = false;
 				}
+				else if( dataEntry.getKey().startsWith("functions." ) ) {
+					hookKey = dataEntry.getKey().substring(10);
+					hasReturnValue = true;
+				}
+				else
+					continue;
+				
+				String hookPointer = getValue_String(initialState, dataEntry.getKey(), null);
+				if( hookPointer == null )
+					throw new IllegalStateException("Hook data has no value.");	// Should not happen.
+				
+				ICommandGenerator routine = RunUtils.compileProgram(hookPointer, assemblies);
+				CallableHook hook = new CallableHook(hookKey, hasReturnValue, routine);
+				hookRoutines.put(hookKey, hook);
 			}
 			
 			// TODO: Add more routines here ...
@@ -114,14 +129,17 @@ public class SpellProgramHandler {
 		return true;
 	}*/
 	
-	public void runHook(String hookKey, Object ... args) {
+	public Object runHook(String hookKey, SpellData data, Object ... args) {
 		if( initialState == null )
 			throw new IllegalStateException("Handler is uninitialized.");	// TODO: Improve exception
-		ICommandGenerator routine = hookRoutines.get(hookKey);
-		if( routine == null )
+		CallableHook hook = hookRoutines.get(hookKey);
+		if( hook == null )
 			throw new IllegalStateException("Hook '" + hookKey + "' is not existing.");	// TODO: Improve exception
 		
 		WizardryOperable state = (WizardryOperable)initialState.makeCopy(true);
+		
+		if( data != null )
+			state.setSpellData(data);
 		
 		// Load arguments
 		for( Object obj : args ) {
@@ -130,8 +148,17 @@ public class SpellProgramHandler {
 		}
 		
 		// invoke VM procedure
-		ActionProcessor proc = RunUtils.runProgram(state, routine);
+		ActionProcessor proc = RunUtils.runProgram(state, hook.getRoutine());
 		logExceptions(proc);
+		
+		// maybe retrieve return value
+		if( hook.isHasReturnValue() ) {
+			Object obj = state.popData();
+			if( obj == null )
+				throw new IllegalStateException("Expected a return value.");	// TODO: Improve exception
+			return obj;
+		}
+		return null;
 	}
 	
 	private ProgramSequence[] loadSources() throws IOException, ScriptParserException {
@@ -241,6 +268,7 @@ public class SpellProgramHandler {
 			
 			// Search for context parameters
 			int idxContextParamRing = -1;
+			int idxContextParamData = -2;
 			Parameter[] params = method.getParameters();
 			for( int i = 0; i < params.length; i ++ ) {
 				Parameter param = params[i];
@@ -249,9 +277,19 @@ public class SpellProgramHandler {
 						throw new ModuleInitException("Method '" + method.toString() + "' has invalid @ContextRing annotated parameter. It is not allowed on multiple parameters.");
 					idxContextParamRing = i;
 				}
+				if( param.isAnnotationPresent(ContextData.class) ) {
+					if( idxContextParamData >= 0 )
+						throw new ModuleInitException("Method '" + method.toString() + "' has invalid @ContextData annotated parameter. It is not allowed on multiple parameters.");
+					idxContextParamData = i;
+				}
 			}
 			
-			BuiltinMethod binMethod = new BuiltinMethod(method, idxContextParamRing);
+			// 
+			if( idxContextParamRing == idxContextParamData )
+				throw new ModuleInitException("Method '" + method.toString() + "' has a parameter which is annotated with multiple roles.");
+
+			
+			BuiltinMethod binMethod = new BuiltinMethod(method, idxContextParamRing, idxContextParamData);
 			builtinMethods.put(builtin.value(), binMethod);
 		}
 		
@@ -265,14 +303,16 @@ public class SpellProgramHandler {
 		private final Method method;
 		private final MethodHandle methodHandle;
 		private final int idxContextParamRing;
+		private final int idxContextParamData;
 		
-		BuiltinMethod(Method method, int idxContextParamRing) throws ModuleInitException {
+		BuiltinMethod(Method method, int idxContextParamRing, int idxContextParamData) throws ModuleInitException {
 			super();
 			try {
 				this.method = method;
 				this.methodHandle = MethodHandles.lookup().unreflect(method);
 				
 				this.idxContextParamRing = idxContextParamRing >= 0 ? idxContextParamRing : -2;
+				this.idxContextParamData = idxContextParamData >= 0 ? idxContextParamData : -2;
 			} catch (Exception e) {
 				throw new ModuleInitException("Couldn't initialize override method binding. See cause.", e);
 			}
@@ -291,8 +331,12 @@ public class SpellProgramHandler {
 		 * 
 		 * @return the index of the parameter for the referenced ring or a negative value if no such parameter exists.
 		 */
-		int getIdxContextParamRing() {
+		public int getIdxContextParamRing() {
 			return idxContextParamRing;
+		}
+		
+		public int getIdxContextParamData() {
+			return idxContextParamData;
 		}
 	}
 	
@@ -301,30 +345,34 @@ public class SpellProgramHandler {
 		private final SpellRing spellRingWithBuiltin;
 		private final BuiltinMethod baseMethod;
 		
-		public BuiltinPointer(String builtinName, SpellRing spellRingWithBuiltin, BuiltinMethod baseMethod) {
+		BuiltinPointer(String builtinName, SpellRing spellRingWithBuiltin, BuiltinMethod baseMethod) {
 			super();
 			this.builtinName = builtinName;
 			this.spellRingWithBuiltin = spellRingWithBuiltin;
 			this.baseMethod = baseMethod;
 		}
 
-		public String getBuiltinName() {
+		String getBuiltinName() {
 			return builtinName;
 		}
 
-		public SpellRing getSpellRingWithBuiltin() {
+		SpellRing getSpellRingWithBuiltin() {
 			return spellRingWithBuiltin;
 		}
 
-		public BuiltinMethod getBaseMethod() {
+		BuiltinMethod getBaseMethod() {
 			return baseMethod;
 		}
 		
-		public int getArgumentCount() {
+		int getArgumentCount() {
 			int countExtra = 0;
 			
 			int idxContextParamRing = baseMethod.getIdxContextParamRing();
 			if( idxContextParamRing >= 0 )
+				countExtra ++;
+			
+			int idxContextParamData = baseMethod.getIdxContextParamData();
+			if( idxContextParamData >= 0 )
 				countExtra ++;
 			
 			return baseMethod.getMethod().getParameterCount() - countExtra;
@@ -348,16 +396,19 @@ public class SpellProgramHandler {
 		 * @return the return value from the override call.
 		 * @throws Throwable any occurred exception thrown by the override implementation or by the Java Method Handler. 
 		 */
-		Object invoke(Object[] args) throws Throwable {
+		Object invoke(WizardryOperable operable, Object[] args) throws Throwable {
 			// TODO: REFACTORING: Combine with ModuleOverrideHandler.OverridePointer.invoke(Object[]) and move to utils.
 
 			// TODO: Type check. Needed for stack.
 			
 			int idxContextParamRing = baseMethod.getIdxContextParamRing();
+			int idxContextParamData = baseMethod.getIdxContextParamData();
 			
 			Object passedArgs[] = args;
 			int countExtra = 1;
 			if( idxContextParamRing >= 0 )
+				countExtra ++;
+			if( idxContextParamData >= 0 )
 				countExtra ++;
 			
 			// Add extra arguments like this pointer a.s.o.
@@ -370,6 +421,9 @@ public class SpellProgramHandler {
 				}
 				else if( i == idxContextParamRing + 1 ) {
 					passedArgs[i] = spellRingWithBuiltin;
+				}
+				else if( i == idxContextParamData + 1 ) {
+					passedArgs[i] = operable;
 				}
 				else {
 					passedArgs[i] = args[j];
@@ -385,6 +439,31 @@ public class SpellProgramHandler {
 				// NOTE: If this happens, then correctness of checks like "areMethodsCompatible()" a.s.o. need to be debugged.
 				throw new IllegalStateException("Couldn't invoke call. See cause.", e);
 			}
+		}
+	}
+	
+	private static class CallableHook {
+		private final String hookName;
+		private final boolean hasReturnValue;
+		private final ICommandGenerator routine;
+		
+		CallableHook(String hookName, boolean hasReturnValue, ICommandGenerator routine) {
+			super();
+			this.hookName = hookName;
+			this.hasReturnValue = hasReturnValue;
+			this.routine = routine;
+		}
+
+		String getHookName() {
+			return hookName;
+		}
+
+		boolean isHasReturnValue() {
+			return hasReturnValue;
+		}
+
+		ICommandGenerator getRoutine() {
+			return routine;
 		}
 	}
 

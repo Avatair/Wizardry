@@ -23,6 +23,7 @@
 	proc v_initCastingDefault {
 		set $hooks.onSpellCast = "hook_onSpellCast";
 		set $hooks.onAfterSpellCast = "hook_onAfterSpellCast";
+		set $functions.getCoolMessage = "fct_getCoolMessage";
 	}
 	
 // Hooks
@@ -31,8 +32,12 @@
 		call native stdShapeAfterSpellCast;
 	}
 	
-	proc hook_onSpellCast {
+	proc fct_getCoolMessage {
 		// Test builtins
 		call native helloWorld;
+	}
+	
+	proc hook_onSpellCast {
+		call fct_getCoolMessage;
 		echo stderr;
 	}
