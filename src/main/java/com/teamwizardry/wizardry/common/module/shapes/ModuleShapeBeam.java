@@ -9,6 +9,7 @@ import com.teamwizardry.wizardry.api.spell.annotation.ModuleOverride;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextRing;
 import com.teamwizardry.wizardry.api.spell.annotation.ContextSuper;
+import com.teamwizardry.wizardry.api.spell.annotation.MagicScriptBuiltin;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
@@ -209,6 +210,11 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	}
 	
 	///////////
+	
+	@MagicScriptBuiltin("helloWorld")
+	public String helloWorldBuiltin(String name, @ContextRing SpellRing shape) {
+		return "Hello " + name + ". How is the live on " + shape + "?";
+	}
 	
 	@ModuleOverride("shape_beam_render")
 	public boolean onRenderBeam(SpellData data, SpellRing shape) {

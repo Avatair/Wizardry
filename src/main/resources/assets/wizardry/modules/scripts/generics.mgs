@@ -6,5 +6,31 @@
 
 	proc initMain {
 		echo stderr "initMain called.";
+		
+		// Test builtins
+		push "Avatair";
+		call native helloWorld;
+		echo stderr;
+		
 		// TODO: do initialization
+		call initCasting;
+	}
+	
+	proc initCasting {
+	injectionPoint_Pre:
+	injectionPoint_Main:
+		call v_initCastingDefault;
+	injectionPoint_Post:
+	}
+	
+// Overrideables:
+	
+	proc v_initCastingDefault {
+		set $hooks.onAfterSpellCast = "hook_onAfterSpellCast";
+	}
+	
+// Hooks
+	
+	proc hook_onAfterSpellCast {
+		call native stdShapeAfterSpellCast;
 	}

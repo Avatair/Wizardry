@@ -10,6 +10,8 @@ import java.util.Map.Entry;
 import com.teamwizardry.wizardry.api.spell.annotation.ModuleParameter;
 import com.teamwizardry.wizardry.api.spell.annotation.RegisterModule;
 import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideHandler.OverrideMethod;
+import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler;
+import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler.BuiltinMethod;
 
 /**
  * A factory object to create new module instances based on passed parameter sets.
@@ -22,6 +24,7 @@ public class ModuleFactory {
 	private final HashMap<Map<String, Object>, IModule> instances = new HashMap<>();
 	private final HashMap<String, Field> configurableFields = new HashMap<>();
 	private final HashMap<String, OverrideMethod> overridableMethods = new HashMap<>();
+	private final HashMap<String, BuiltinMethod> builtinMethods = new HashMap<>();
 	private final String referenceModuleID;
 	
 	ModuleFactory(String referenceModuleID, Class<? extends IModule> clazz) throws ModuleInitException {
@@ -45,6 +48,9 @@ public class ModuleFactory {
 
 		// Determine overrides
 		overridableMethods.putAll(ModuleOverrideHandler.getOverrideMethodsFromClass(clazz, true));
+		
+		// Determine builtins
+		builtinMethods.putAll(SpellProgramHandler.getBuiltinMethodsFromClass(clazz));
 	}
 	
 	/**
@@ -72,6 +78,15 @@ public class ModuleFactory {
 	 */
 	public Map<String, OverrideMethod> getOverrides() {
 		return Collections.unmodifiableMap(overridableMethods);
+	}
+	
+	/**
+	 * Returns a map containing all builtin methods within the module, callable from VM.
+	 * 
+	 * @return a map, which associates a builtin name with a method.
+	 */
+	public Map<String, BuiltinMethod> getBuiltins() {
+		return Collections.unmodifiableMap(builtinMethods);
 	}
 	
 	/**

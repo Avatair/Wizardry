@@ -1,28 +1,57 @@
 package com.teamwizardry.wizardry.api.spell.vm;
 
+import java.util.Map;
+
 import com.teamwizardry.wizardry.api.spell.SpellData;
-import com.teamwizardry.wizardry.lib.vm.command.CommandException;
+import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler.BuiltinPointer;
 import com.teamwizardry.wizardry.lib.vm.command.operable.MagicScriptOperable;
 import com.teamwizardry.wizardry.lib.vm.command.operable.OperableException;
-
-import kotlin.Pair;
 
 public class WizardryOperable extends MagicScriptOperable<WizardryOperable> {
 
 	private SpellData spellData;
+	private final Map<String, BuiltinPointer> builtins;
 	
-	public WizardryOperable() {
+	public WizardryOperable(Map<String, BuiltinPointer> builtins) {
 		super(WizardryOperable.class);
+		this.builtins = builtins;
 	}
 
 	public WizardryOperable(WizardryOperable prev, boolean isForked) {
 		super(WizardryOperable.class, prev, isForked);
+		this.builtins = prev.builtins;
 	}
 
 	@Override
-	public void callNative(String cmdName) throws CommandException {
-		// TODO Auto-generated method stub
+	public void callNative(String cmdName) throws OperableException {
+		BuiltinPointer builtin = builtins.get(cmdName);
+		if( builtin == null )
+			throw new OperableException("Builtin '" + cmdName + "' is not existing.");
 		
+		// Get arguments 
+		int countArgs = builtin.getArgumentCount();
+		Object args[] = new Object[countArgs];
+		for( int i = 0; i < countArgs; i ++ ) {
+			Object data = popData();
+			if( data == null )
+				throw new OperableException("Not enough arguments in stack to call builtin '" + cmdName + "'. Expected " + countArgs + ", but found only " + i + ".");
+			args[i] = data;
+		}
+		
+		// invoke builtin
+		try {
+			Object object = builtin.invoke(args);
+			if( object != null ) {
+				// TODO: Translate primitive types like "int", "float" etc. into their container class types
+				pushData(object);
+			}
+		}
+		catch(Throwable exc) {
+			// TODO: Improve exceptions after refactoring invokes.
+			if( exc instanceof Error )
+				throw (Error)exc;	// Simply rethrow errors
+			throw new OperableException("Exception occurred when callin a builtin '" + cmdName + "'. See cause.", exc);
+		}
 	}
 	
 	public void setSpellData(SpellData spellData) {

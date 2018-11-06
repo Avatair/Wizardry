@@ -1,9 +1,7 @@
 package com.teamwizardry.wizardry.lib.vm.command.operable;
 
-import com.teamwizardry.wizardry.lib.vm.command.CommandException;
-
 public interface IMagicCommandOperable extends ICommandOperable {
-	void callNative(String cmdName) throws CommandException;
+	void callNative(String cmdName) throws OperableException;
 	
 	void pushData(Object obj);
 	Object popData();

@@ -613,6 +613,9 @@ public class ModuleOverrideHandler {
 		 * @throws Throwable any occurred exception thrown by the override implementation or by the Java Method Handler. 
 		 */
 		Object invoke(Object[] args) throws Throwable {
+			
+			// TODO: Type check. Needed for super invoke.
+			
 			int idxContextParamRing = baseMethod.getIdxContextParamRing();
 			int idxContextParamSuper = baseMethod.getIdxContextParamSuper();
 			
