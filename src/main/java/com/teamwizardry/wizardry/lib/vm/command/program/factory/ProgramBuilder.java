@@ -265,11 +265,11 @@ public class ProgramBuilder implements IProgramSequence {
 		
 		FrameTraversing makeEnterSubFrame(ProgramBuilder builder, CallFrameEntry hotspot) throws UnsatisfiedLinkException {
 			String frameName = hotspot.getCalledFrameName();
-			String translatedFrameName = builder.prototype.getAliasedName(frameName);
+			String translatedFrameName = builder.prototype.getAliasedName(frameName, true);
 			if( translatedFrameName == null )
 				translatedFrameName = frameName;
 			
-			Frame subFrame = builder.prototype.getFrame(translatedFrameName);
+			Frame subFrame = builder.prototype.getFrame(translatedFrameName, true);
 			if( subFrame == null )
 				throw new UnsatisfiedLinkException("Unsatisfied link: frame " + translatedFrameName + " is not existing, referenced by alias " + frameName + "." );
 			return new FrameTraversing(this, hotspot, subFrame, null);

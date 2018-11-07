@@ -296,8 +296,6 @@ public class MagicScriptBuilder {
 			else if( token.isKeyword("stop") ) {
 				tokenizer.getNextToken().expectSign(';');
 				
-				// TODO: Need a more friendly exit method than int3 as it sounds like a fault.
-				
 				// Add stop
 				targetPrg.addStop(false);
 			}

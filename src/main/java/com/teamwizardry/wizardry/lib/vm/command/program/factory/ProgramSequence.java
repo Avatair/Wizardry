@@ -1,7 +1,9 @@
 package com.teamwizardry.wizardry.lib.vm.command.program.factory;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -14,8 +16,12 @@ import com.teamwizardry.wizardry.lib.vm.command.type.NullCommand;
 
 public class ProgramSequence implements IProgramSequence {
 	
-	private LinkedList<ProgramSequence> importedPrograms = new LinkedList<>();	// TODO: Fix me. Recursive imports will break override behavior. 
+	private LinkedList<WeakReference<ProgramSequence>> importers = new LinkedList<>();
+
+	private LinkedList<ProgramSequence> importedPrograms = new LinkedList<>();
 	private HashMap<String, String> frameAliasMap = new HashMap<>();
+	
+	private LinkedList<ProgramSequence> lazy_flatImportedPrograms = null;
 
 	private HashMap<String, Frame> frames = new HashMap<>();
 	private Frame curFrame = null;
@@ -29,8 +35,55 @@ public class ProgramSequence implements IProgramSequence {
 	public ProgramSequence importProgram(ProgramSequence other) {
 		if( !importedPrograms.contains(other) ) {
 			importedPrograms.addFirst(other);
+			other.importers.add(new WeakReference<>(this));
+			
+			invalidateImporters();
 		}
 		return this;
+	}
+	
+	public List<ProgramSequence> getRecursiveImportedPrograms() {
+		// NOTE: No cyclical dependency check?
+		if( lazy_flatImportedPrograms == null ) {
+			synchronized(this) {
+				if( lazy_flatImportedPrograms != null )
+					return lazy_flatImportedPrograms;	// If after the lock, some other thread generated the data.
+
+				LinkedList<ProgramSequence> flatList = new LinkedList<>();
+
+				for( ProgramSequence importedProgram : importedPrograms ) {
+					if( !flatList.contains(importedProgram) ) {
+						List<ProgramSequence> otherImportedPrograms = importedProgram.getRecursiveImportedPrograms();
+						for( ProgramSequence otherImportedProgram : otherImportedPrograms ) {
+							if( !flatList.contains(otherImportedProgram) )
+								flatList.addLast(otherImportedProgram);
+						}
+
+						flatList.addLast(importedProgram);
+					}
+				}
+
+				lazy_flatImportedPrograms = flatList;
+			}
+		}
+
+		return Collections.unmodifiableList(lazy_flatImportedPrograms);
+	}
+
+	private synchronized void invalidateImporters() {
+		lazy_flatImportedPrograms = null;
+		
+		Iterator<WeakReference<ProgramSequence>> iter = importers.iterator();
+		while( iter.hasNext() ) {
+			WeakReference<ProgramSequence> refImporter = iter.next();
+			ProgramSequence importedProgram = refImporter.get();
+			if( importedProgram == null ) {
+				iter.remove();
+				continue;
+			}
+			
+			importedProgram.invalidateImporters();
+		}		
 	}
 	
 	@Override
@@ -254,22 +307,33 @@ public class ProgramSequence implements IProgramSequence {
 		return this;
 	}
 	
-	Frame getFrame(String frameName) {
+	Frame getFrame(String frameName, boolean bIncludeDeps ) {
 		Frame frame = frames.get(frameName);
-		Iterator<ProgramSequence> iter = importedPrograms.iterator(); 
+		if( frame != null )
+			return frame;
+		if( !bIncludeDeps )
+			return null;
+		
+		Iterator<ProgramSequence> iter = getRecursiveImportedPrograms().iterator(); 
 		while( frame == null && iter.hasNext() ) {
 			ProgramSequence otherSequence = iter.next();
-			frame = otherSequence.getFrame(frameName);
+			frame = otherSequence.getFrame(frameName, false);
 		}
 		return frame;
 	}
 	
-	String getAliasedName(String frameName) {
+	String getAliasedName(String frameName, boolean bIncludeDeps) {
 		String trn = frameAliasMap.get(frameName);
-		Iterator<ProgramSequence> iter = importedPrograms.iterator(); 
+		if( trn != null )
+			return trn;
+		if( !bIncludeDeps )
+			return null;
+
+		
+		Iterator<ProgramSequence> iter = getRecursiveImportedPrograms().iterator(); 
 		while( trn == null && iter.hasNext() ) {
 			ProgramSequence otherSequence = iter.next();
-			trn = otherSequence.getAliasedName(frameName);
+			trn = otherSequence.getAliasedName(frameName, false);
 		}
 		return trn;
 	}
