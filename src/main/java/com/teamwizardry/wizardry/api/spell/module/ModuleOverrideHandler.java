@@ -42,6 +42,7 @@ public class ModuleOverrideHandler {
 			throw new IllegalArgumentException("passed spellRing is not a root.");
 		
 		// Apply default overrides
+		// TODO: Move default overrides map to this class from ModuleRegistry
 		for( OverrideDefaultMethod methodEntry : ModuleRegistry.INSTANCE.getDefaultOverrides().values() )
 			applyDefaultOverride(methodEntry);
 		
@@ -613,6 +614,7 @@ public class ModuleOverrideHandler {
 		 * @throws Throwable any occurred exception thrown by the override implementation or by the Java Method Handler. 
 		 */
 		Object invoke(Object[] args) throws Throwable {
+			// NOTE: Synchronize with SpellProgramHandler.BuiltinPointer.invoke(WizardryOperable, Object[]) to make refactoring easier later.
 			
 			// TODO: Type check. Needed for super invoke.
 			

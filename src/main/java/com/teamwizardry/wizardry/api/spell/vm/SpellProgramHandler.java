@@ -129,6 +129,10 @@ public class SpellProgramHandler {
 		return true;
 	}*/
 	
+	public boolean isHookAvailable(String hookKey) {
+		return hookRoutines.containsKey(hookKey);
+	}
+	
 	public Object runHook(String hookKey, SpellData data, Object ... args) {
 		if( initialState == null )
 			throw new IllegalStateException("Handler is uninitialized.");	// TODO: Improve exception
@@ -155,7 +159,7 @@ public class SpellProgramHandler {
 		if( hook.isHasReturnValue() ) {
 			Object obj = state.popData();
 			if( obj == null )
-				throw new IllegalStateException("Expected a return value.");	// TODO: Improve exception
+				throw new IllegalStateException("Expected a return value in stack.");	// TODO: Improve exception
 			return obj;
 		}
 		return null;
@@ -171,13 +175,50 @@ public class SpellProgramHandler {
 			for( int i = 0; i < scripts.size(); i ++ ) {
 				String scriptFile = scripts.get(i);
 	// TODO:			ResourceLocation loc = new ResourceLocation(scriptFile);
-				result[i] = MagicScriptBuilder.createFromResource(scriptFile).provideDependency("generics", generics).build();
+				MagicScriptBuilder builder = MagicScriptBuilder.createFromResource(scriptFile).provideDependency("generics", generics);
+				
+				for( int j = 0; j < i; j ++ ) {
+					builder.provideDependency(getScriptName(scripts.get(j)), result[j]);
+				}	
+				
+				result[i] = builder.build();
 			}
 			return result;
 		}
 		else {
 			return new ProgramSequence[] {generics};
 		}
+	}
+	
+	private static String getScriptName( String fileName ) {
+		// TODO: Move to utils
+		fileName = fileName.replace('\\', '/');
+		int i = lastIndexOf( fileName, '/' );
+		if( i >= 0 )
+			fileName = fileName.substring(i + 1);
+		
+		i = lastIndexOf( fileName, '.' );
+		if( i >= 0 )
+			fileName = fileName.substring(0, i);
+		
+		return fileName;
+	}
+	
+	private static int lastIndexOf(String str, int c) {
+		// TODO: Move to utils
+		
+		int nextIdx = str.indexOf(c);
+		if( nextIdx < 0 )
+			return -1;
+		
+		int idx;
+		do {
+			idx = nextIdx;
+			nextIdx = str.indexOf(c, idx + 1);
+		}
+		while( nextIdx >= 0 );
+		
+		return idx;
 	}
 	
 	private static ProgramSequence getGenericsSource() throws ScriptParserException, IOException {

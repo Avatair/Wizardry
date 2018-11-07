@@ -76,7 +76,7 @@ public class MagicScriptBuilder {
 							String targetSequenceName = frameName.getSubDomain(0, frameName.getCountDomainNodes() - 1);
 							String targetName = frameName.getDomainNode(frameName.getCountDomainNodes() - 1);
 							
-							targetSequence = dependencies.get(targetSequenceName);
+							targetSequence = dependencies.get(targetSequenceName);	// TODO: Only imported dependencies!
 							if( targetSequence == null )
 								throw new ScriptParserException("Script '" + targetSequenceName + "' is not existing.");
 							

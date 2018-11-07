@@ -15,6 +15,7 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.module.IModuleShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleInstanceShape;
 import com.teamwizardry.wizardry.api.spell.module.ModuleOverrideSuper;
+import com.teamwizardry.wizardry.api.spell.vm.ScriptKey;
 import com.teamwizardry.wizardry.api.spell.vm.SpellProgramHandler;
 import com.teamwizardry.wizardry.api.spell.vm.WizardryOperable;
 import com.teamwizardry.wizardry.api.util.RandUtil;
@@ -47,7 +48,9 @@ import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.LOOK;
 @RegisterModule(ID="shape_beam")
 @Mod.EventBusSubscriber(modid = Wizardry.MODID)
 public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
-
+	
+	private static final String SCRIPT_SOURCE = "/assets/wizardry/modules/scripts/shape_beam.mgs";
+	
 	public static final String BEAM_OFFSET = "beam offset";
 	public static final String BEAM_CAST = "beam cast";
 
@@ -215,6 +218,14 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	
 	///////////
 	
+	@ModuleOverride("generic_append_script")
+	public void appendScript( @ContextSuper ModuleOverrideSuper ovdSuper, ScriptKey key) {
+		if( ovdSuper.hasSuper() )
+			ovdSuper.invoke(true, key);
+		
+		key.appendScript(SCRIPT_SOURCE);
+	}
+	
 	@MagicScriptBuiltin("helloWorld")
 	public String helloWorldBuiltin(String name, @ContextRing SpellRing shape, @ContextData WizardryOperable data) {
 		return "Hello " + name + ". How is the live on " + shape + "?";
@@ -227,7 +238,7 @@ public class ModuleShapeBeam implements IModuleShape, IContinuousModule {
 	}
 	
 	@ModuleOverride("shape_beam_run")
-	public void onRunBeam(@ContextSuper ModuleOverrideSuper ovdSuper, SpellData data, SpellRing shape) {
+	public void onRunBeam(SpellData data, SpellRing shape) {
 		// Default implementation
 	}
 }

@@ -14,7 +14,7 @@ import com.teamwizardry.wizardry.lib.vm.command.type.NullCommand;
 
 public class ProgramSequence implements IProgramSequence {
 	
-	private LinkedList<ProgramSequence> importedPrograms = new LinkedList<>();
+	private LinkedList<ProgramSequence> importedPrograms = new LinkedList<>();	// TODO: Fix me. Recursive imports will break override behavior. 
 	private HashMap<String, String> frameAliasMap = new HashMap<>();
 
 	private HashMap<String, Frame> frames = new HashMap<>();

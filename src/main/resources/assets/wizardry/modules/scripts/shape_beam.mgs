@@ -1,0 +1,30 @@
+import generics;
+
+///////
+// Beam shape
+///////
+
+	edit proc generics.initCasting at injectionPoint_Pre {
+		echo stderr "v_initCasting_Beam injected.";
+		call v_initCasting_Beam;
+	}
+	
+// procedures
+
+	proc v_initCasting_Beam {
+		set $hooks.onSpellCast = "hook_onSpellCast";
+		set $functions.getCoolMessage = "fct_getCoolMessage";
+	}
+	
+// hooks
+	
+	proc fct_getCoolMessage {
+		// Test builtins
+		call native helloWorld;
+	}
+	
+	proc hook_onSpellCast {
+		call fct_getCoolMessage;
+		echo stderr;
+	}
+	
