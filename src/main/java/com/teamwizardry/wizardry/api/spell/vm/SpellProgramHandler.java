@@ -42,9 +42,8 @@ public class SpellProgramHandler {
 	
 	private ICommandGenerator initRoutine;
 	private HashMap<String, CallableHook> hookRoutines = new HashMap<>();
-//	private ICommandGenerator runRoutine;
 	
-	public SpellProgramHandler(SpellRing spellChain) {
+	public SpellProgramHandler(SpellRing spellChain) throws SpellProgramException {
 		if( spellChain.getParentRing() != null )
 			throw new IllegalArgumentException("passed spellRing is not a root.");
 		
@@ -55,14 +54,11 @@ public class SpellProgramHandler {
 		initProgram();
 	}
 
-	private void initProgram() {
-		// NOTE: If exceptions are thrown. Don't quit minecraft!
-
+	private void initProgram() throws SpellProgramException {
 		initialState = null;
 
 		initRoutine = null;
 		hookRoutines.clear();
-//		runRoutine = null;
 		
 		// Load scripts
 		try {
@@ -73,14 +69,11 @@ public class SpellProgramHandler {
 			// Call initialization
 			initialState = new WizardryOperable(builtins);
 			ActionProcessor proc = RunUtils.runProgram(initialState.makeCopy(true), initRoutine);	// TODO: Handle exceptions
-			logExceptions(proc);
+			Exception[] excs = gatherExceptions(proc);
+			if( excs.length > 0 )
+				throw new SpellProgramException("Error occurred when calling init script. See attached exceptions.", excs);
 			
 			// Retrieve hooks
-/*			String hook = getValue_String(initialState, HOOK_RUNSPELL, null);
-			if( hook != null ) {
-				runRoutine = RunUtils.compileProgram(hook, assemblies);
-			}*/
-			
 			for( Entry<String, Object> dataEntry : initialState.getData().entrySet() ) {
 				boolean hasReturnValue;
 				String hookKey;
@@ -103,31 +96,17 @@ public class SpellProgramHandler {
 				CallableHook hook = new CallableHook(hookKey, hasReturnValue, routine);
 				hookRoutines.put(hookKey, hook);
 			}
-			
-			// TODO: Add more routines here ...
-
 		} catch (Exception e) {
 			initialState = null;
+			initRoutine = null;
+			hookRoutines.clear();
 			
-			// TODO: Handle proper way!
-			e.printStackTrace();
+			if( e instanceof RuntimeException )
+				throw (RuntimeException)e;
+			
+			throw new SpellProgramException("Error occurred during initialization. See casue.", e);
 		}
 	}
-	
-/*	public boolean runProgram(ExecutionPhase phase) {
-		if( initialState == null )
-			return false; // If something was unsuccessful when loading.
-		
-		ActionProcessor proc;
-		if( ExecutionPhase.RUN_TICK.equals(phase) ) {
-			proc = RunUtils.runProgram(initialState.makeCopy(true), runRoutine);
-		}
-		else
-			throw new IllegalArgumentException("Unknown execution phase " + phase);
-		logExceptions(proc);
-		
-		return true;
-	}*/
 	
 	public boolean isHookAvailable(String hookKey) {
 		return hookRoutines.containsKey(hookKey);
@@ -135,10 +114,10 @@ public class SpellProgramHandler {
 	
 	public Object runHook(String hookKey, SpellData data, Object ... args) {
 		if( initialState == null )
-			throw new IllegalStateException("Handler is uninitialized.");	// TODO: Improve exception
+			throw new IllegalStateException("Handler is uninitialized.");
 		CallableHook hook = hookRoutines.get(hookKey);
 		if( hook == null )
-			throw new IllegalStateException("Hook '" + hookKey + "' is not existing.");	// TODO: Improve exception
+			throw new SpellProgramException("Hook '" + hookKey + "' is not existing.");
 		
 		WizardryOperable state = (WizardryOperable)initialState.makeCopy(true);
 		
@@ -147,19 +126,25 @@ public class SpellProgramHandler {
 		
 		// Load arguments
 		for( Object obj : args ) {
-			// TODO: Support null arguments
-			state.pushData(obj);
+			if( obj != null )
+				state.pushData(obj);
+			else
+				state.pushData(NullObject.ME);
 		}
 		
 		// invoke VM procedure
 		ActionProcessor proc = RunUtils.runProgram(state, hook.getRoutine());
-		logExceptions(proc);
+		Exception[] excs = gatherExceptions(proc);
+		if( excs.length > 0 )
+			throw new SpellProgramException("Failed to invoke spell program. See exceptions.", excs);
 		
 		// maybe retrieve return value
 		if( hook.isHasReturnValue() ) {
 			Object obj = state.popData();
 			if( obj == null )
-				throw new IllegalStateException("Expected a return value in stack.");	// TODO: Improve exception
+				throw new SpellProgramException("Expected a return value in stack.");
+			if( obj == NullObject.ME )
+				return null;
 			return obj;
 		}
 		return null;
@@ -257,6 +242,17 @@ public class SpellProgramHandler {
 	}
 	
 	// TODO: Move to utils, all below!
+	
+	private static Exception[] gatherExceptions(ActionProcessor proc) {
+		List<Action> failedActions = proc.getFailedActions();
+		Exception[] excList = new Exception[failedActions.size()];
+		
+		int i = 0;
+		for( Action failedAction : failedActions )
+			excList[i++] = failedAction.getException();
+		
+		return excList;
+	}
 	
 	private static void logExceptions(ActionProcessor proc) {
 		for( Action failedAction : proc.getFailedActions() ) {

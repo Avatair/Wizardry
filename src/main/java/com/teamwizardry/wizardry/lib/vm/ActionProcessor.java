@@ -70,8 +70,10 @@ public class ActionProcessor {
 		try {
 			if( evtType != ActionEventType.EXCEPTION )
 				bIsActive |= act.handleEvent(evtType);
-			else
+			else {
 				act.handleExceptionEvent(act.getException());
+				failedActions.add(act);
+			}
 		}
 		catch(Exception exc) {
 			Exception storedException = act.getException();
@@ -82,10 +84,10 @@ public class ActionProcessor {
 				else
 					DebugUtils.printDebug("FAULT", "First exception is unknown.");	// NOTE: Should never occur if Action.dieByException() is
 																					//       the only place to kill an action by exception
+				failedActions.add(act);
 			}
 			else {
 				act.dieByException(exc);
-				failedActions.add(act);
 			}
 		}
 	}
