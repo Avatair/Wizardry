@@ -8,6 +8,7 @@ import com.teamwizardry.wizardry.api.spell.attribute.AttributeModifier;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry;
 import com.teamwizardry.wizardry.api.spell.attribute.Operation;
 import com.teamwizardry.wizardry.api.spell.attribute.AttributeRegistry.Attribute;
+
 import com.teamwizardry.wizardry.api.spell.ProcessData.DataType;
 import com.teamwizardry.wizardry.api.spell.SpellDataTypes.BlockSet;
 import com.teamwizardry.wizardry.api.spell.SpellDataTypes.BlockStateCache;
@@ -27,10 +28,10 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import static com.teamwizardry.wizardry.api.spell.SpellData.DefaultKeys.BLOCK_HIT;
@@ -362,7 +363,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		return value;
 	}
 	
-	/////////////////
+	////////////////////
 	
 	public static class DataField<E> {
 		private final String fieldName;
@@ -373,7 +374,6 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 			this.fieldName = fieldName;
 			this.dataType = dataType;
 		}
-	
 
 		public String getFieldName() {
 			return fieldName;
