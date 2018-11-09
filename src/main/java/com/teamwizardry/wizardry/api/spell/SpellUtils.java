@@ -129,7 +129,7 @@ public class SpellUtils {
 			return rings;
 		for (int i = 0; i < list.tagCount(); i++) {
 			NBTTagCompound compound = list.getCompoundTagAt(i);
-			SpellRing ring = SpellRing.deserializeRing(compound);
+			SpellRing ring = SpellRingCache.INSTANCE.getSpellRingByNBT(compound);
 			if (ring == null) continue;
 			rings.add(ring);
 		}
