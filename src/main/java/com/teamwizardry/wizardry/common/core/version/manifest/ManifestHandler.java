@@ -1,12 +1,6 @@
-package com.teamwizardry.wizardry.common.core.version;
+package com.teamwizardry.wizardry.common.core.version.manifest;
 
 import com.google.common.io.Files;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.internal.Streams;
-import com.google.gson.stream.JsonWriter;
 import com.teamwizardry.librarianlib.core.LibrarianLib;
 import com.teamwizardry.wizardry.Wizardry;
 import com.teamwizardry.wizardry.crafting.mana.ManaRecipes;
@@ -23,6 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ManifestHandler {
+	
+	public static final String MANIFEST_FILENAME = "manifest.json"; 
 
 	public static ManifestHandler INSTANCE = new ManifestHandler();
 	private HashMap<String, HashMap<String, String>> internalManifestMap = new HashMap<>();
@@ -32,7 +28,13 @@ public class ManifestHandler {
 
 	private ManifestHandler() {
 	}
-
+	
+	public ManifestUpgrader startUpgrade(File directory) {
+		ManifestUpgrader upgrader = new ManifestUpgrader(directory);
+		upgrader.startUpgradeManifest();
+		return upgrader;
+	}
+	
 	public void processComparisons(File directory, String... categories) {
 		boolean change = false;
 
@@ -73,7 +75,7 @@ public class ManifestHandler {
 		}
 
 		if (change) {
-			File externalManifest = new File(directory, "manifest.json");
+			File externalManifest = new File(directory, MANIFEST_FILENAME);
 			if (!externalManifest.exists()) {
 
 				try {
@@ -85,7 +87,7 @@ public class ManifestHandler {
 					e.printStackTrace();
 				}
 			}
-			writeJsonToFile(generateInternalManifestJson(), externalManifest);
+			ManifestUtils.writeJsonToFile(ManifestUtils.generateManifestJson(internalManifestMap), externalManifest);
 			externalManifestMap.putAll(internalManifestMap);
 			Wizardry.logger.info("    > Successfully generated new manifest file");
 		}
@@ -161,7 +163,7 @@ public class ManifestHandler {
 	 */
 	public void loadExternalManifest(@Nonnull File directory) {
 		try {
-			File externalManifest = new File(directory, "manifest.json");
+			File externalManifest = new File(directory, MANIFEST_FILENAME);
 			if (!externalManifest.exists()) {
 
 				if (!externalManifest.createNewFile()) {
@@ -169,7 +171,7 @@ public class ManifestHandler {
 					return;
 				}
 
-				writeJsonToFile(generateInternalManifestJson(), externalManifest);
+				ManifestUtils.writeJsonToFile(ManifestUtils.generateManifestJson(internalManifestMap), externalManifest);
 				externalManifestMap.putAll(internalManifestMap);
 				generatedNewManifest = true;
 				Wizardry.logger.info("    > Successfully generated new manifest file");
@@ -182,42 +184,14 @@ public class ManifestHandler {
 			}
 
 			Wizardry.logger.info("    > Found manifest file. Reading...");
-			JsonElement element = new JsonParser().parse(new FileReader(externalManifest));
-
-			if (element != null && element.isJsonObject()) {
-
-				for (Map.Entry<String, JsonElement> categorySet : element.getAsJsonObject().entrySet()) {
-					String category = categorySet.getKey();
-					JsonElement categoryElement = categorySet.getValue();
-
-					externalManifestMap.putIfAbsent(category, new HashMap<>());
-					Wizardry.logger.info("    >  |");
-					Wizardry.logger.info("    >  |_ Category found: " + category);
-
-					if (categoryElement.isJsonArray()) {
-						for (JsonElement element1 : categoryElement.getAsJsonArray()) {
-							if (!element1.isJsonObject()) continue;
-
-							JsonObject externalObject = element1.getAsJsonObject();
-
-							if (!externalObject.has("id") || !externalObject.has("hash")) continue;
-
-							String id = externalObject.getAsJsonPrimitive("id").getAsString();
-							String hash = externalObject.getAsJsonPrimitive("hash").getAsString();
-
-							externalManifestMap.get(category).put(id, hash);
-							Wizardry.logger.info("    >  | |_ " + id + ": " + hash);
-						}
-					}
-				}
-			}
+			ManifestUtils.loadManifestFile(externalManifest, externalManifestMap, true);
 			Wizardry.logger.info("    >  |____________________________________/");
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public void addItemToManifest(String category, String modId, String id, File file) {
 		internalManifestMap.putIfAbsent(category, new HashMap<>());
 
@@ -242,35 +216,5 @@ public class ManifestHandler {
 		String prevModId = fileToMod.get(category).put(id, modId);
 		if( prevModId != null )
 			Wizardry.logger.warn("    > File name conflict for " + category + "/" + id + ".json occurring in mods '" + modId + "' and '" + prevModId + "'. Some stuff wont be available." );
-	}
-
-	public JsonObject generateInternalManifestJson() {
-		JsonObject jsonManifest = new JsonObject();
-
-		for (Map.Entry<String, HashMap<String, String>> categoryEntry : internalManifestMap.entrySet()) {
-			String category = categoryEntry.getKey();
-
-			JsonArray categoryArray = new JsonArray();
-			for (Map.Entry<String, String> entry : categoryEntry.getValue().entrySet()) {
-				JsonObject entryObject = new JsonObject();
-				entryObject.addProperty("id", entry.getKey());
-				entryObject.addProperty("hash", entry.getValue());
-
-				categoryArray.add(entryObject);
-			}
-
-			jsonManifest.add(category, categoryArray);
-		}
-
-		return jsonManifest;
-	}
-
-	public void writeJsonToFile(JsonObject object, File file) {
-		try (JsonWriter writer = new JsonWriter(Files.newWriter(file, Charset.defaultCharset()))) {
-			Streams.write(object, writer);
-		} catch (IOException e) {
-			Wizardry.logger.error("    > SOMETHING WENT WRONG! Could not create or write to file! Customizations to recipes and modules will be reset every time you load the game!");
-			e.printStackTrace();
-		}
 	}
 }
