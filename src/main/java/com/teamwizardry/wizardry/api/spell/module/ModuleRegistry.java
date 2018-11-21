@@ -63,9 +63,14 @@ public class ModuleRegistry {
 	}
 
 	@Nonnull
-	public ArrayList<ModuleInstance> getModules(ModuleType type) {
+	public ArrayList<ModuleInstance> getModules(ModuleType type, boolean ignoreUnavailable) {
 		ArrayList<ModuleInstance> modules = new ArrayList<>();
-		for (ModuleInstance module : this.modules) if (module.getModuleType() == type) modules.add(module);
+		for (ModuleInstance module : this.modules) {
+			if ( ignoreUnavailable && !module.isAvailable() )
+				continue;
+			if (module.getModuleType() == type)
+				modules.add(module);
+		}
 
 		modules.sort(Comparator.comparing(ModuleInstance::getReadableName));
 		return modules;
@@ -207,6 +212,30 @@ public class ModuleRegistry {
 
 				String iconID = moduleObject.get("icon").getAsString();
 				icon = new ResourceLocation(iconID);
+			}
+			
+			// Get if available
+			boolean isAvailable = true;
+			if (moduleObject.has("available")) {
+				boolean failed = false;
+				
+				try {
+					if( !moduleObject.get("available").isJsonPrimitive() )
+						failed = true;
+					else {
+						isAvailable = moduleObject.get("available").getAsBoolean();
+					}
+				}
+				catch(ClassCastException exc) {
+					// Is not a boolean type
+					failed = true;
+				}
+				
+				if( failed ) {
+					Wizardry.logger.error("| | |_ SOMETHING WENT WRONG! Field 'available' has an invalid type in " + file.getName() + ". It is expected to be a boolean.");
+					Wizardry.logger.error("| |___ Failed to register module " + moduleName);
+					continue;
+				}
 			}
 			
 			// Retrieve module using optional parameters
@@ -351,7 +380,7 @@ public class ModuleRegistry {
 				}
 			}
 			
-			ModuleInstance module = ModuleInstance.createInstance(moduleClass, moduleClassFactory, moduleName, icon, new ItemStack(item, 1, itemMeta), primaryColor, secondaryColor, attributeRanges);
+			ModuleInstance module = ModuleInstance.createInstance(moduleClass, moduleClassFactory, moduleName, icon, isAvailable, new ItemStack(item, 1, itemMeta), primaryColor, secondaryColor, attributeRanges);
 
 			if (moduleObject.has("modifiers") && moduleObject.get("modifiers").isJsonArray()) {
 				Wizardry.logger.info(" | | |___ Found Modifiers. About to process them");

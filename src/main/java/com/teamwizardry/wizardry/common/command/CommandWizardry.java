@@ -136,8 +136,11 @@ public class CommandWizardry extends CommandBase {
 			ModuleInstanceModifier[] modifierList = module.applicableModifiers();
 			if (modifierList != null) {
 				notifyCommandListener(sender, this, TextFormatting.YELLOW + " |  |_ " + TextFormatting.GREEN + "Applicable Modifiers ");
-				for (ModuleInstanceModifier modifier : modifierList)
+				for (ModuleInstanceModifier modifier : modifierList) {
+					if( !modifier.isAvailable() )
+						continue;
 					notifyCommandListener(sender, this, TextFormatting.YELLOW + " |     |_ " + TextFormatting.DARK_GREEN + modifier.getSubModuleID());
+				}
 			}
 			notifyCommandListener(sender, this, TextFormatting.YELLOW + " |________________________________________________//");
 		} else {

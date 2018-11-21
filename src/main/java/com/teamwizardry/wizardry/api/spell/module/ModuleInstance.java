@@ -61,6 +61,7 @@ public abstract class ModuleInstance {
 	protected final ModuleFactory createdByFactory;
 	protected final IModule moduleClass;
 	protected final ResourceLocation icon;
+	protected final boolean isModuleAvailable;
 	protected final List<AttributeModifier> attributes = new ArrayList<>();
 	protected Map<Attribute, AttributeRange> attributeRanges = new DefaultHashMap<>(AttributeRange.BACKUP);
 	protected Color primaryColor;
@@ -82,18 +83,19 @@ public abstract class ModuleInstance {
 			ModuleFactory createdByFactory,
 			String subModuleID,
 			ResourceLocation icon,
+			boolean isModuleAvailable,
 			ItemStack itemStack,
             Color primaryColor,
             Color secondaryColor,
             DefaultHashMap<Attribute, AttributeRange> attributeRanges) {
 		if( moduleClass instanceof IModuleEffect )
-			return new ModuleInstanceEffect((IModuleEffect)moduleClass, createdByFactory, subModuleID, icon, itemStack, primaryColor, secondaryColor, attributeRanges);
+			return new ModuleInstanceEffect((IModuleEffect)moduleClass, createdByFactory, subModuleID, icon, isModuleAvailable, itemStack, primaryColor, secondaryColor, attributeRanges);
 		else if( moduleClass instanceof IModuleModifier )
-			return new ModuleInstanceModifier((IModuleModifier)moduleClass, createdByFactory, subModuleID, icon, itemStack, primaryColor, secondaryColor, attributeRanges);
+			return new ModuleInstanceModifier((IModuleModifier)moduleClass, createdByFactory, subModuleID, icon, isModuleAvailable, itemStack, primaryColor, secondaryColor, attributeRanges);
 		else if( moduleClass instanceof IModuleEvent )
-			return new ModuleInstanceEvent((IModuleEvent)moduleClass, createdByFactory, itemStack, subModuleID, icon, primaryColor, secondaryColor, attributeRanges);
+			return new ModuleInstanceEvent((IModuleEvent)moduleClass, createdByFactory, itemStack, subModuleID, isModuleAvailable, icon, primaryColor, secondaryColor, attributeRanges);
 		else if( moduleClass instanceof IModuleShape )
-			return new ModuleInstanceShape((IModuleShape)moduleClass, createdByFactory, itemStack, subModuleID, icon, primaryColor, secondaryColor, attributeRanges);
+			return new ModuleInstanceShape((IModuleShape)moduleClass, createdByFactory, itemStack, subModuleID, isModuleAvailable, icon, primaryColor, secondaryColor, attributeRanges);
 		else
 			throw new UnsupportedOperationException("Unknown module type.");
 	}
@@ -102,6 +104,7 @@ public abstract class ModuleInstance {
 			      ModuleFactory createdByFactory,
 				  String moduleName,
 				  ResourceLocation icon,
+				  boolean isModuleAvailable,
 				  ItemStack itemStack,
 	              Color primaryColor,
 	              Color secondaryColor,
@@ -110,6 +113,7 @@ public abstract class ModuleInstance {
 		this.createdByFactory = createdByFactory;
 		this.subModuleID = moduleName;
 		this.icon = icon;
+		this.isModuleAvailable = isModuleAvailable;
 		this.itemStack = itemStack;
 		this.primaryColor = primaryColor;
 		this.secondaryColor = secondaryColor;
@@ -603,5 +607,9 @@ public abstract class ModuleInstance {
 		if( icon == null )
 			return new ResourceLocation(Wizardry.MODID, "textures/gui/worktable/icons/" + getSubModuleID() + ".png");
 		return icon;
+	}
+
+	public boolean isAvailable() {
+		return isModuleAvailable && moduleClass.isAvailable();
 	}
 }

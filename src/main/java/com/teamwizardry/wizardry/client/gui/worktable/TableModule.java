@@ -477,7 +477,7 @@ public class TableModule extends GuiComponent {
 
 		HashMap<ModuleInstanceModifier, Integer> modifiers = new HashMap<>();
 		List<ModuleInstanceModifier> modifierList = new ArrayList<>();
-		for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER)) {
+		for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER, false)) {
 			if (!(module instanceof ModuleInstanceModifier)) continue;
 			if (!hasData(Integer.class, module.getSubModuleID())) continue;
 

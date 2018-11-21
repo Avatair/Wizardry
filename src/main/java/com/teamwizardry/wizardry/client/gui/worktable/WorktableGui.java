@@ -221,7 +221,7 @@ public class WorktableGui extends GuiBase {
 							lastCommonModule = commonModule;
 						}
 
-						for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER)) {
+						for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER, false)) {
 							if (!(module instanceof ModuleInstanceModifier)) continue;
 							if (!lastModule.hasData(Integer.class, module.getSubModuleID())) continue;
 
@@ -579,7 +579,7 @@ public class WorktableGui extends GuiBase {
 					lastCommonModule = commonModule;
 				}
 
-				for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER)) {
+				for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER, false)) {
 					if (!(module instanceof ModuleInstanceModifier)) continue;
 					if (!lastModule.hasData(Integer.class, module.getSubModuleID())) continue;
 
@@ -622,7 +622,7 @@ public class WorktableGui extends GuiBase {
 			while (lastModule != null) {
 				chain.add(lastModule.getModule());
 
-				for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER)) {
+				for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER, false)) {
 					if (!(module instanceof ModuleInstanceModifier)) continue;
 					if (!lastModule.hasData(Integer.class, module.getSubModuleID())) continue;
 
@@ -649,9 +649,15 @@ public class WorktableGui extends GuiBase {
 				if (ring != lastRing) spellNameBuilder.append(TextFormatting.GRAY).append(" | ");
 				SpellRing tmpRing = ring;
 				while (tmpRing != null) {
+					String name;
+					if( tmpRing.isAvailable() )
+						name = tmpRing.getModuleReadableName();
+					else
+						name = "(unavailable)" + tmpRing.getModuleReadableName();
+					
 					spellNameBuilder
 							.append(TextFormatting.YELLOW)
-							.append(tmpRing.getModuleReadableName())
+							.append(name)
 							.append(TextFormatting.GRAY)
 							.append("(")
 							.append(TextFormatting.BLUE)
@@ -721,7 +727,7 @@ public class WorktableGui extends GuiBase {
 
 	private void addModules(ComponentSprite parent, ModuleType type) {
 		int column = 0, row = 0;
-		for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(type)) {
+		for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(type, true)) {
 			TableModule tableModule = new TableModule(this, module, false, false);
 			tableModule.setPos(new Vec2d(row * 16, column * 16));
 			parent.add(tableModule);
@@ -832,7 +838,7 @@ public class WorktableGui extends GuiBase {
 					fakeModule.getTransform().setTranslateZ(230);
 					fakePaper.add(fakeModule);
 
-					for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER)) {
+					for (ModuleInstance module : ModuleRegistry.INSTANCE.getModules(ModuleType.MODIFIER, false)) {
 						if (tableModule.hasData(Integer.class, module.getSubModuleID())) {
 							fakeModule.setData(Integer.class, module.getSubModuleID(), tableModule.getData(Integer.class, module.getSubModuleID()));
 						}

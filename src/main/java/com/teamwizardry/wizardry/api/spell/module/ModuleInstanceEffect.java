@@ -15,9 +15,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class ModuleInstanceEffect extends ModuleInstance {
 
-	public ModuleInstanceEffect(IModuleEffect moduleClass, ModuleFactory createdByFactory, String subModuleID, ResourceLocation icon, ItemStack itemStack, Color primaryColor, Color secondaryColor,
+	public ModuleInstanceEffect(IModuleEffect moduleClass, ModuleFactory createdByFactory, String subModuleID, ResourceLocation icon, boolean isModuleAvailable, ItemStack itemStack, Color primaryColor, Color secondaryColor,
 			DefaultHashMap<Attribute, AttributeRange> attributeRanges) {
-		super(moduleClass, createdByFactory, subModuleID, icon, itemStack, primaryColor, secondaryColor, attributeRanges);
+		super(moduleClass, createdByFactory, subModuleID, icon, isModuleAvailable, itemStack, primaryColor, secondaryColor, attributeRanges);
 		moduleClass.initEffect(this);
 	}
 	

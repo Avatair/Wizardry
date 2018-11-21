@@ -154,6 +154,8 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 	 */
 	public boolean runSpellRing(SpellData data) {
 		if (module == null) return false;
+		if (!isAvailable())
+			return false;
 
 		if (data.getCaster() != null)
 			data.processCastTimeModifiers(data.getCaster(), this);
@@ -176,6 +178,11 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 
 	public boolean isContinuous() {
 		return module.getModuleClass() instanceof IContinuousModule;
+	}
+	
+	public boolean isAvailable() {
+		if (module == null) return false;
+		return module.isAvailable();
 	}
 
 
@@ -561,6 +568,8 @@ public class SpellRing implements INBTSerializable<NBTTagCompound> {
 
 		SpellRing ring = this;
 		while (ring != null) {
+			if( !ring.isAvailable() )
+				builder.append("(unavailable)");
 			builder.append(ring.getModuleReadableName()).append(ring.getChildRing() == null ? "" : " > ");
 			ring = ring.getChildRing();
 		}

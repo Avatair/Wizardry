@@ -91,18 +91,17 @@ public class ComponentModifiers extends GuiComponent {
 
 			ModuleInstance module = selectedModule.getModule();
 
-			ModuleInstanceModifier[] applicableModifiers = module.applicableModifiers();
-			if (applicableModifiers == null || applicableModifiers.length <= 0) {
+//			ModuleInstanceModifier[] applicableModifiers = module.applicableModifiers();
+//			if (applicableModifiers == null || applicableModifiers.length <= 0) {
+//				animationPlaying = false;
+//				return;
+//			}
+
+			ModuleInstance[] modifiers = filterByAvailable(module.applicableModifiers());
+			if (modifiers == null || modifiers.length <= 0) {
 				animationPlaying = false;
 				return;
 			}
-
-			ModuleInstanceModifier[] modifiers = module.applicableModifiers();
-			if (modifiers == null) {
-				animationPlaying = false;
-				return;
-			}
-
 
 			int modifiersSize = modifiers.length; // units: none
 			float slideOutDist = modifiersSize * PIXELS_PER_BAR; // units: pixels
@@ -115,7 +114,7 @@ public class ComponentModifiers extends GuiComponent {
 				int lengthToTravel = (i + 1) * PIXELS_PER_BAR; // units: pixels
 				float slideDuration = outDuration * lengthToTravel / slideOutDist; // units: ticks
 
-				ModuleInstanceModifier modifier = modifiers[i];
+				ModuleInstanceModifier modifier = (ModuleInstanceModifier)modifiers[i];
 
 				ComponentRect bar = new ComponentRect(0, 0, getSize().getXi(), PIXELS_PER_BAR);
 				bar.getColor().setValue(new Color(0x80000000, true));
@@ -246,4 +245,30 @@ public class ComponentModifiers extends GuiComponent {
 	public void drawComponent(@Nonnull Vec2d mousePos, float partialTicks) {
 
 	}
+	
+	@SuppressWarnings("unchecked")
+	private <T extends ModuleInstance> ModuleInstance[] filterByAvailable(T[] list) {
+		// TODO: Move to API utils for spell modules.
+		
+		if( list == null || list.length <= 0 )
+			return list;
+		ArrayList<T> list2 = new ArrayList<T>(list.length);
+		for( T instance : list ) {
+			if( !instance.isAvailable() )
+				continue;
+			list2.add(instance);
+		}
+		return (T[]) list2.toArray(new ModuleInstance[list2.size()]);
+	}
+	
+/*	private static boolean hasAvailableComponents(ModuleInstance[] list) {
+		if (list == null || list.length <= 0)
+			return false;
+		for( ModuleInstance instance : list ) {
+			if( instance.isAvailable() )
+				return true;
+		}
+		
+		return false;
+	} */
 }

@@ -27,4 +27,13 @@ public interface IModule {
 	default boolean ignoreResultForRendering() {
 		return false;
 	}
+	
+	/**
+	 * Returns if the module is enabled and all derived module instances should appear in the worktable 
+	 * 
+	 * @return <code>true</code> iff yes.
+	 */
+	default boolean isAvailable() {
+		return true;
+	}
 }
