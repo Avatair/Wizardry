@@ -55,10 +55,13 @@ public class ModuleRegistry {
 
 	@Nullable
 	public ModuleInstance getModule(ItemStack itemStack) {
-		for (ModuleInstance module : modules)
+		for (ModuleInstance module : modules) {
+			if( !module.isAvailable() )
+				continue;
 			if (ItemStack.areItemsEqual(itemStack, module.getItemStack())) {
 				return module;
 			}
+		}
 		return null;
 	}
 
