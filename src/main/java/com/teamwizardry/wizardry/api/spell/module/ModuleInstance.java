@@ -454,12 +454,12 @@ public abstract class ModuleInstance {
 		// Find all registered compatible modifiers and return them. Results are cached.
 		if( applicableModifiers == null ) {
 			LinkedList<ModuleInstanceModifier> applicableModifiersList = new LinkedList<>();
-			
-			String[] modifierNames = moduleClass.compatibleModifierClasses();
+			// TODO: Replace applicable modifier list with more dynamic system
+			String[] modifierNames = moduleClass.compatibleModifiers();
 			if( modifierNames != null ) {
 				for( ModuleInstance mod : ModuleRegistry.INSTANCE.modules ) {
 					for( String modifier : modifierNames ) {
-						if( mod.getReferenceModuleID().equals(modifier) ) {
+						if( mod.getSubModuleID().equals(modifier) ) {
 							if( !(mod instanceof ModuleInstanceModifier) ) {
 								// TODO: Log it!
 								continue;

@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
 public class ModuleEffectPoisonCloud implements IModuleEffect, ILingeringModule {
 
     @Override
-    public String[] compatibleModifierClasses() {
+    public String[] compatibleModifiers() {
         return new String[]{"modifier_increase_aoe", "modifier_increase_potency", "modifier_extend_time"};
     }
 
@@ -55,13 +55,12 @@ public class ModuleEffectPoisonCloud implements IModuleEffect, ILingeringModule 
         double area = spellRing.getAttributeValue(AttributeRegistry.AREA, spell);
 
         for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(new BlockPos(position)).grow(area, area, area))) {
-            if (entity == null) continue;
             if (entity instanceof EntityLivingBase) {
                 EntityLivingBase living = (EntityLivingBase) entity;
                 if(potency >= 3) {
                     living.addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 100));
                 }
-                living.addPotionEffect(new PotionEffect(MobEffects.POISON, 60, (int) (potency/3 >= 3 ? 3 : potency/3)));
+                living.addPotionEffect(new PotionEffect(MobEffects.POISON, 60, (int) (potency/3)));
             }
         }
 
