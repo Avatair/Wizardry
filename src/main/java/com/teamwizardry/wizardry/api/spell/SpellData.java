@@ -17,6 +17,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.*;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
@@ -106,7 +107,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 	public void processTrace(RayTraceResult trace, @Nullable Vec3d fallback) {
 
 		if (trace.typeOfHit == RayTraceResult.Type.ENTITY)
-			processEntity(trace.entityHit, false);
+			processTargetEntity(trace.entityHit);
 		else if (trace.typeOfHit == RayTraceResult.Type.BLOCK)
 			processBlock(trace.getBlockPos(), trace.sideHit, trace.hitVec);
 		else {
@@ -245,21 +246,31 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		float offZ = 0.5f * (float) Math.cos(Math.toRadians(-90.0f - getYaw()));
 		return new Vec3d(offX, 0, offZ).add(trueOrigin);
 	}
-
-	public void processEntity(@Nonnull Entity entity, boolean asCaster) {
-		if (asCaster) {
-			addData(DefaultKeys.ORIGIN, entity.getPositionVector().add(0, entity.getEyeHeight(), 0));
-			addData(DefaultKeys.CASTER, entity);
-			addData(DefaultKeys.YAW, entity.rotationYaw);
-			addData(DefaultKeys.PITCH, entity.rotationPitch);
-			addData(DefaultKeys.LOOK, entity.getLook(0));
-			addData(DefaultKeys.CAPABILITY, WizardryCapabilityProvider.getCap(entity));
-		} else {
-			addData(DefaultKeys.TARGET_HIT, entity.getPositionVector().add(0, entity.height / 2.0, 0));
-			addData(DefaultKeys.ENTITY_HIT, entity);
-		}
+	
+	@Nonnull
+	public EnumHand getHand() {
+		return getData(DefaultKeys.HAND);
 	}
 
+	public void processCasterEntity(@Nonnull Entity entity, @Nonnull EnumHand hand) {
+		processCasterEntity(entity);
+		addData(DefaultKeys.HAND, hand);
+	}
+	
+	public void processCasterEntity(@Nonnull Entity entity) {
+		addData(DefaultKeys.ORIGIN, entity.getPositionVector().add(0, entity.getEyeHeight(), 0));
+		addData(DefaultKeys.CASTER, entity);
+		addData(DefaultKeys.YAW, entity.rotationYaw);
+		addData(DefaultKeys.PITCH, entity.rotationPitch);
+		addData(DefaultKeys.LOOK, entity.getLook(0));
+		addData(DefaultKeys.CAPABILITY, WizardryCapabilityProvider.getCap(entity));
+	}
+	
+	public void processTargetEntity(@Nonnull Entity entity) {
+		addData(DefaultKeys.TARGET_HIT, entity.getPositionVector().add(0, entity.height / 2.0, 0));
+		addData(DefaultKeys.ENTITY_HIT, entity);
+	}
+	
 	public void processBlock(@Nullable BlockPos pos, @Nullable EnumFacing facing, @Nullable Vec3d targetHit) {
 		if (pos == null && targetHit != null) pos = new BlockPos(targetHit);
 		if (targetHit == null && pos != null) targetHit = new Vec3d(pos).add(0.5, 0.5, 0.5);
@@ -419,6 +430,7 @@ public class SpellData implements INBTSerializable<NBTTagCompound> {
 		public static final DataField<NBTTagCompound> COMPOUND = constructField("compound", NBTTagCompound.class);
 		public static final DataField<Integer> MAX_TIME = constructField("max_time", Integer.class);
 		public static final DataField<Entity> CASTER = constructField("caster", Entity.class);
+		public static final DataField<EnumHand> HAND = constructField("hand", EnumHand.class);
 		public static final DataField<Float> YAW = constructField("yaw", Float.class);
 		public static final DataField<Float> PITCH = constructField("pitch", Float.class);
 		public static final DataField<Vec3d> LOOK = constructField("look", Vec3d.class);

@@ -95,7 +95,7 @@ public class ModuleShapeZone implements IModuleShape, ILingeringModule {
 				Vec3d vec = new Vec3d(RandUtil.nextDouble(min.x, max.x), RandUtil.nextDouble(min.y, max.y), RandUtil.nextDouble(min.z, max.z));
 
 				SpellData copy = spell.copy();
-				copy.processEntity(entity, false);
+				copy.processTargetEntity(entity);
 				copy.addData(YAW, entity.rotationYaw);
 				copy.addData(PITCH, entity.rotationPitch);
 				copy.addData(ORIGIN, vec);

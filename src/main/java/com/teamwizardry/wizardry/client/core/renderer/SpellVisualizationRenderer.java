@@ -45,7 +45,7 @@ public class SpellVisualizationRenderer {
 		for (SpellRing chain : chains) {
 
 			SpellData data = new SpellData(world);
-			data.processEntity(player, true);
+			data.processCasterEntity(player);
 
 			SpellRing ring = chain;
 			while (ring != null) {

@@ -22,6 +22,7 @@ import net.minecraft.nbt.NBTTagLong;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -145,6 +146,20 @@ public class SpellDataTypes {
 		@Override
 		public EnumFacing deserialize(World world, NBTTagString object) {
 			return EnumFacing.valueOf(object.getString());
+		}
+	}
+	
+	@RegisterDataType(storageType="net.minecraft.nbt.NBTTagString", dataType="net.minecraft.util.EnumHand")
+	public static class EnumHandType implements Process<NBTTagString, EnumHand> {
+		@Override
+		public NBTTagString serialize(EnumHand object) {
+			if (object == null) return new NBTTagString("MAIN_HAND");
+			return new NBTTagString(object.name());
+		}
+
+		@Override
+		public EnumHand deserialize(World world, NBTTagString object) {
+			return EnumHand.valueOf(object.getString());
 		}
 	}
 	

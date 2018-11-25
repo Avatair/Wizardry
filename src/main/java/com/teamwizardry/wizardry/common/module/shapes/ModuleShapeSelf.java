@@ -43,7 +43,7 @@ public class ModuleShapeSelf implements IModuleShape {
 		IShapeOverrides overrides = spellRing.getOverrideHandler().getConsumerInterface(IShapeOverrides.class);
 		overrides.onRunSelf(spell, spellRing);
 		
-		spell.processEntity(caster, false);
+		spell.processTargetEntity(caster);
 
 		return true;
 	}

@@ -60,8 +60,8 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 		if (requiresBowAction(stack)) return false;
 
 		SpellData spell = new SpellData(playerIn.world);
-		spell.processEntity(playerIn, true);
-		spell.processEntity(target, false);
+		spell.processCasterEntity(playerIn, hand);
+		spell.processTargetEntity(target);
 		SpellUtils.runSpell(stack, spell);
 
 		setCooldown(playerIn.world, playerIn, hand, stack, spell);
@@ -89,7 +89,7 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 			return EnumActionResult.PASS;
 
 		SpellData spell = new SpellData(world);
-		spell.processEntity(player, true);
+		spell.processCasterEntity(player, hand);
 		spell.processBlock(pos, side, new Vec3d(pos).add(0.5, 0.5, 0.5));
 		SpellUtils.runSpell(stack, spell);
 
@@ -118,7 +118,7 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 				player.setActiveHand(hand);
 			else {
 				SpellData spell = new SpellData(player.world);
-				spell.processEntity(player, true);
+				spell.processCasterEntity(player, hand);
 				SpellUtils.runSpell(stack, spell);
 				setCooldown(world, player, hand, stack, spell);
 			}
@@ -145,14 +145,14 @@ public class ItemStaff extends ItemMod implements INacreProduct.INacreDecayProdu
 		if (isContinuousSpell(stack)) {
 
 			SpellData spell = new SpellData(player.world);
-			spell.processEntity(player, true);
+			spell.processCasterEntity(player);
 			SpellUtils.runSpell(stack, spell);
 		} else {
 			int chargeup = getChargeupTime(stack);
 			if (72000 - count >= chargeup) {
 
 				SpellData spell = new SpellData(player.world);
-				spell.processEntity(player, true);
+				spell.processCasterEntity(player);
 				SpellUtils.runSpell(stack, spell);
 
 				setCooldown(player.world, (EntityPlayer) player, player.getActiveHand(), stack, spell);
